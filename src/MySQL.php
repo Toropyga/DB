@@ -1,8 +1,16 @@
 <?php
 
+/**
+ * Класс для работы с БД MySQL
+ * @author FYN
+ * Date: 15/04/2005
+ * @version 5.0.0
+ * @copyright 2005-2021
+ */
+
 namespace FYN\DB;
 
-class MySQL {
+class MySQL extends AbstractDB {
 
     /**
      * Имя/адрес сервера БД
@@ -30,20 +38,10 @@ class MySQL {
      */
     private $db_pass; //User password
     /**
-     * Логи
-     * @var array
-     */
-    private $logs = array();
-    /**
      * Записывать в лог все действия (true) или только ошибки (false)
      * @var bool
      */
     private $log_all = true;
-    /**
-     * Имя файла в который сохраняется лог
-     * @var string
-     */
-    private $log_file = 'mysql.log';
     /**
      * Подключение к БД
      * @var object
@@ -75,20 +73,10 @@ class MySQL {
      */
     private $use_transaction = true;
     /**
-     * Включить или отключить отладочные функции
-     * @var bool
-     */
-    private $debug = true; //Show error on Site
-    /**
      * Завершить ли работу программы при ошибке
      * @var bool
      */
     private $error_exit = false; //Exit if script contain error
-    /**
-     * Коды существующих ошибок
-     * @var array
-     */
-    private $error_code = array();
 
     /**
      * DBMySQL constructor.
@@ -100,23 +88,32 @@ class MySQL {
      * @param mixed $PASS - пароль
      */
     public function __construct ($HOST = false, $PORT = false, $NAME = false, $USER = false, $PASS = false) {
-        if (defined('DB_HOST') && !$HOST) $this->db_host = DB_HOST; elseif ($HOST) $this->db_host = $HOST;
-        if (defined('DB_PORT') && !$PORT) $this->db_port = DB_PORT; elseif ($PORT) $this->db_port = $PORT;
-        if (defined('DB_NAME') && !$NAME) $this->db_name = DB_NAME; elseif ($NAME) $this->db_name = $NAME;
-        if (defined('DB_USER') && !$USER) $this->db_user = DB_USER; elseif ($USER) $this->db_user = $USER;
-        if (defined('DB_PASS') && !$PASS) $this->db_pass = DB_PASS; elseif ($PASS) $this->db_pass = $PASS;
-        if (defined('DB_STORAGE')) $this->db_storage = DB_STORAGE;
-        if (defined('DB_USE_TRANSACTION')) $this->use_transaction = DB_USE_TRANSACTION;
-        if (defined('DB_DEBUG')) $this->debug = DB_DEBUG;
-        if (defined('DB_ERROR_EXIT')) $this->error_exit = DB_ERROR_EXIT;
-        if (defined('DB_LOG_NAME')) $this->log_file = DB_LOG_NAME;
-        if (defined('DB_LOG_ALL')) $this->log_all = DB_LOG_ALL;
+        if (defined('DB_MYSQL_HOST') && !$HOST) $this->db_host = DB_MYSQL_HOST; elseif ($HOST) $this->db_host = $HOST;
+        if (defined('DB_MYSQL_PORT') && !$PORT) $this->db_port = DB_MYSQL_PORT; elseif ($PORT) $this->db_port = $PORT;
+        if (defined('DB_MYSQL_NAME') && !$NAME) $this->db_name = DB_MYSQL_NAME; elseif ($NAME) $this->db_name = $NAME;
+        if (defined('DB_MYSQL_USER') && !$USER) $this->db_user = DB_MYSQL_USER; elseif ($USER) $this->db_user = $USER;
+        if (defined('DB_MYSQL_PASS') && !$PASS) $this->db_pass = DB_MYSQL_PASS; elseif ($PASS) $this->db_pass = $PASS;
+        if (defined('DB_MYSQL_STORAGE')) $this->db_storage = DB_MYSQL_STORAGE;
+        if (defined('DB_MYSQL_USE_TRANSACTION')) $this->use_transaction = DB_MYSQL_USE_TRANSACTION;
+        if (defined('DB_MYSQL_DEBUG')) $this->debug = DB_MYSQL_DEBUG;
+        if (defined('DB_MYSQL_ERROR_EXIT')) $this->error_exit = DB_MYSQL_ERROR_EXIT;
+        if (defined('DB_MYSQL_LOG_NAME')) $this->log_file = DB_MYSQL_LOG_NAME;
+        if (defined('DB_MYSQL_LOG_ALL')) $this->log_all = DB_MYSQL_LOG_ALL;
         if (!function_exists('mysqli_connect')) {
             if ($this->log_all) $this->logs[] = "PHP MySQL not installed!";
             $this->DB_Error("PHP MySQL not installed!", '__construct');
         }
         else if ($this->db_storage) $this->getConnect();
         return true;
+    }
+
+
+    /**
+     * Деструктор класса.
+     */
+    public function __destruct() {
+        $this->getClose();
+        $this->status = false;
     }
 
     /**
@@ -526,56 +523,23 @@ class MySQL {
      * @return bool
      */
     private function DB_Error ($message=false, $code = '') {
+
         if ($code && isset($this->error_code[$code])) return false;
         elseif ($code) $this->error_code[$code] = true;
-        //Return, send and show error
-        //$message = date('d-m-Y H:i:s (T) ') . $message;
+
         $message_bd = htmlentities(@mysqli_error($this->db_connect));
         list($mess) = preg_split("/:/", $message);
         $query = htmlentities(trim(strtr($message, array($mess.":"=>''))));
         $message = $mess;
+        if ($query) $message .= " QUERY: ".$query;
+        $message .= " ERROR: ".$message_bd;
 
-        $server_ip = (isset($_SERVER['REMOTE_ADDR']))?$_SERVER['REMOTE_ADDR']:'';
-        if (!$server_ip) $server_ip = urldecode(getenv('HTTP_CLIENT_IP'));
+        $this->Error($message, $code = '');
 
-        $ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'-';
-        $err = "Critical Database Error from DBMySQL (".WWW_PATH.") \nLink error: ".$_SERVER['REQUEST_URI']."\nReferer: ".$ref."\nServer IP: ".$server_ip."\n".$message.": ".$query."\nError: ".$message_bd;
-
-        $this->logs[] = preg_replace("/\n/", ' :: ', $err);
-        $error = '<br><span style="color: #FF0000"><b>Critical Database Error from DBMySQL ('.WWW_PATH.') '.date('d-m-Y H:i:s').'</b></span><br>';
-        $error .= "<b>Link error:</b> ".$_SERVER['REQUEST_URI']."<br>";
-        $error .= "<b>Referer:</b> ".$ref."<br>";
-        $error .= "<b>Server IP:</b> ".$server_ip."<br>";
-        $error .= '<span style="color: #008000">'.$message.':</span> ';
-        if ($query) $error .= '<span style="color: #3333cc">'.$query.'</span><br>';
-        $error .= '<span style="color: #008000">Error:</span> <span style="color: #ff0000">'.$message_bd.'</span><br>';
-        if ($this->debug) {
-            if (defined("SITE_CHARSET")) $CODE = SITE_CHARSET;
-            else $CODE = 'utf-8';
-            header("Access-Control-Allow-Origin: *");
-            header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-            header("Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token");
-            header("X-XSS-Protection: 1; mode=block");
-            header("X-Content-Type-Options: nosniff");
-            header("X-Frame-Options: DENY");
-            header("Content-Security-Policy: frame-ancestors 'self'");
-            header("Content-Type: text/html; charset=".$CODE);
-            echo $error;
-        }
         if ($this->error_exit) {
             if (!$this->db_storage) $this->getClose();
             exit;
         }
         return false;
-    }
-
-    /**
-     * Возвращает логи
-     * @return array
-     */
-    public function getLogs () {
-        $return['log'] = $this->logs;
-        $return['file'] = $this->log_file;
-        return $return;
     }
 }

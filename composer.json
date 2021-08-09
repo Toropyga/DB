@@ -10,7 +10,10 @@
         }
     ],
     "require": {
-        "php": ">=5.1.0"
+        "php": ">=5.1.0",
+        "ext-mysqli": "*",
+        "ext-json": "*",
+        "ext-oci8": "*"
     },
     "require-dev": {
 

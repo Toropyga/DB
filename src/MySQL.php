@@ -56,7 +56,7 @@ class MySQL extends AbstractDB {
      * Сохранять подключение на весь сеанс или подключаться при каждом SQL-запросе
      * @var bool
      */
-    private $db_storage = false;
+    private $db_storage = true;
     /**
      * Список полей в таблицах БД
      * @var array
@@ -72,11 +72,6 @@ class MySQL extends AbstractDB {
      * @var bool
      */
     private $use_transaction = true;
-    /**
-     * Завершить ли работу программы при ошибке
-     * @var bool
-     */
-    private $error_exit = false; //Exit if script contain error
 
     /**
      * DBMySQL constructor.
@@ -152,8 +147,7 @@ class MySQL extends AbstractDB {
      */
     public function getClose () {
         if ($this->db_connect) {
-            if ($this->use_transaction) @mysqli_close($this->db_connect);
-            else @mysqli_close($this->db_connect);
+            @mysqli_close($this->db_connect);
             if ($this->log_all) $this->logs[] = "Disconnect from MySQL Host: " . $this->db_host . " - success";
             $this->status = false;
         }
@@ -304,7 +298,7 @@ class MySQL extends AbstractDB {
      * @param string $charset - используемая кодировка
      */
     public function setCharset ($charset = 'utf8') {
-        $mysql_ver = mysqli_get_server_info($this->db_connect);
+        $mysql_ver = @mysqli_get_server_info($this->db_connect);
         $pref = preg_replace("/(\d{1,2}\.\d{1,2})\.(\d{1,3})(.+)/", "\\2", $mysql_ver);
         $mysql_ver = preg_replace("/(\d{1,2}\.\d{1,2})(.+)/", "\\1", $mysql_ver);
         $mysql_ver = $mysql_ver * 1;
@@ -531,10 +525,10 @@ class MySQL extends AbstractDB {
         list($mess) = preg_split("/:/", $message);
         $query = htmlentities(trim(strtr($message, array($mess.":"=>''))));
         $message = $mess;
-        if ($query) $message .= " QUERY: ".$query;
+        if ($query && strlen(trim($query))) $message .= ". QUERY: ".$query;
         $message .= " ERROR: ".$message_bd;
 
-        $this->Error($message, $code = '');
+        parent::Error($message);
 
         if ($this->error_exit) {
             if (!$this->db_storage) $this->getClose();

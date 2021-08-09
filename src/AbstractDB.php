@@ -27,24 +27,59 @@ class AbstractDB {
     protected $debug = false; //Show error on Site
 
     /**
+     * Завершить ли работу программы при ошибке
+     * @var bool
+     */
+    protected $error_exit = false; //Exit if script contain error
+
+    /**
      * Коды существующих ошибок
      * @var array
      */
     protected $error_code = array();
 
-    private function __construct() {
-        if (!defined("WWW_PATH")) {
-            /**
-             * Путь к серверу в браузере вида http://domain_name
-             */
-            define("WWW_PATH", $_SERVER['SERVER_NAME']);
-        }
+    /**
+     * Включение параметра вывода ошибок
+     * @param bool $debug
+     */
+    public function setDebug ($debug = true) {
+        if ($debug) $this->debug = true;
+        else $this->debug = false;
     }
-    protected function Error ($message=false, $code = '') {
 
-        $server_ip = (isset($_SERVER['REMOTE_ADDR']))?$_SERVER['REMOTE_ADDR']:'';
-        if (!$server_ip) $server_ip = urldecode(getenv('HTTP_CLIENT_IP'));
+    /**
+     * Возврат параметра вывода ошибок
+     */
+    public function getDebug () {
+        return $this->debug;
+    }
 
+    /**
+     * Включение параметра прерывания работы ПО при ошибке
+     * @param bool $exit
+     */
+    public function setErrorExit ($exit = true) {
+        if ($exit) $this->error_exit = true;
+        else $this->error_exit = false;
+    }
+
+    /**
+     * Возврат параметра прерывания работы ПО при ошибке
+     */
+    public function getErrorExit () {
+        return $this->error_exit;
+    }
+
+    /**
+     * Обработка ошибок.
+     * Вывод на экран, сохранение в переменную error.
+     * @param bool $message - сообщение об ошибке
+     * @return bool
+     */
+    protected function Error ($message=false) {
+        $ip = $this->getIP();
+        if (!defined("WWW_PATH")) define("WWW_PATH", $_SERVER['SERVER_NAME']);
+        $server_ip = implode("/", $ip);
         $ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'-';
         $err = "Critical Database Error from DBOracle (".WWW_PATH.") \nLink error: ".$_SERVER['REQUEST_URI']."\nReferer: ".$ref."\nServer IP: ".$server_ip."\n".$message;
         $this->logs[] = preg_replace("/\n/", ' :: ', $err);
@@ -75,5 +110,32 @@ class AbstractDB {
         $return['log'] = $this->logs;
         $return['file'] = $this->log_file;
         return $return;
+    }
+
+    /**
+     * Определение IP адреса с которого открывается страница
+     * @return mixed
+     */
+    private function getIP () {
+        $ipn = (isset($_SERVER['REMOTE_ADDR']))?$_SERVER['REMOTE_ADDR']:'';
+        if (!$ipn) $ipn = urldecode(getenv('HTTP_CLIENT_IP'));
+        if (getenv('HTTP_X_FORWARDED_FOR') && strcasecmp(getenv("HTTP_X_FORWARDED_FOR"), "unknown")) $strIP = getenv('HTTP_X_FORWARDED_FOR');
+        elseif (getenv('HTTP_X_FORWARDED') && strcasecmp(getenv("HTTP_X_FORWARDED"), "unknown")) $strIP = getenv('HTTP_X_FORWARDED');
+        elseif (getenv('HTTP_FORWARDED_FOR') && strcasecmp(getenv("HTTP_FORWARDED_FOR"), "unknown")) $strIP = getenv('HTTP_FORWARDED_FOR');
+        elseif (getenv('HTTP_FORWARDED') && strcasecmp(getenv("HTTP_FORWARDED"), "unknown")) $strIP = getenv('HTTP_FORWARDED');
+        else $strIP = (isset($_SERVER['REMOTE_ADDR']))?$_SERVER['REMOTE_ADDR']:'127.0.0.1';
+        if ($ipn == '::1') $ipn = '127.0.0.1';
+        if ($strIP == '::1') $strIP = '127.0.0.1';
+        if (!preg_match("/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/", $ipn)) $ipn = '';
+        if (!preg_match("/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/", $strIP)) $strIP = $ipn;
+        if ($strIP != $ipn) {
+            $ip['proxy'] = $ipn;
+            $ip['ip'] = $strIP;
+        }
+        else {
+            $ip['proxy'] = '';
+            $ip['ip'] = $ipn;
+        }
+        return $ip;
     }
 }

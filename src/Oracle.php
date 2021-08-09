@@ -29,7 +29,7 @@ class Oracle extends AbstractDB {
         'host'      => '',
         'user'      => '',
         'pass'      => '',
-        'name'      => '1521',
+        'name'      => '',
         'port'      => NULL,
         'charset'   => 'AL32UTF8',
         'p_connect' => FALSE,
@@ -70,11 +70,6 @@ class Oracle extends AbstractDB {
      * @var array
      */
     private $stat = array();
-    /**
-     * Завершить ли работу программы при ошибке
-     * @var bool
-     */
-    private $error_exit = false; //Exit if script contain error
 
     /**
      * DBOracle constructor.
@@ -88,7 +83,7 @@ class Oracle extends AbstractDB {
      * @param string $CHARSET - кодировка
      * @param bool $no_connect - не подключаться к БД при инициации класса
      */
-    public function __construct ($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CONNECT, $CHARSET = '', $no_connect = false) {
+    public function __construct ($HOST=NULL, $NAME=NULL, $USER=NULL, $PASS=NULL, $USE_HOST=NULL, $PORT=NULL, $P_CONNECT=NULL, $CHARSET = '', $no_connect = false) {
         if (defined('DB_ORACLE_HOST') && !$HOST) $this->oracle_config['host'] = DB_ORACLE_HOST; elseif ($HOST) $this->oracle_config['host'] = $HOST;
         if (defined('DB_ORACLE_PORT') && !$PORT) $this->oracle_config['port'] = DB_ORACLE_PORT; elseif ($PORT) $this->oracle_config['port'] = $PORT;
         if (defined('DB_ORACLE_NAME') && !$NAME) $this->oracle_config['name'] = DB_ORACLE_NAME; elseif ($NAME) $this->oracle_config['name'] = $NAME;
@@ -97,7 +92,6 @@ class Oracle extends AbstractDB {
         if (defined('DB_ORACLE_STORAGE') && ($P_CONNECT !== false || $P_CONNECT !== true)) $this->oracle_config['p_connect'] = DB_ORACLE_STORAGE;
         elseif ($P_CONNECT && ($P_CONNECT === false || $P_CONNECT === true)) $this->oracle_config['p_connect'] = $P_CONNECT;
         if (defined('DB_ORACLE_CHARSET') && !$CHARSET) $this->oracle_config['charset'] = DB_ORACLE_CHARSET; elseif ($CHARSET) $this->oracle_config['charset'] = $CHARSET;
-
 
         if (defined('DB_ORACLE_DEBUG')) $this->debug = DB_ORACLE_DEBUG;
         if (defined('DB_ORACLE_ERROR_EXIT')) $this->error_exit = DB_ORACLE_ERROR_EXIT;
@@ -511,38 +505,6 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Включение параметра вывода ошибок
-     * @param bool $debug
-     */
-    public function setDebug ($debug = true) {
-        if ($debug) $this->debug = true;
-        else $this->debug = false;
-    }
-
-    /**
-     * Возврат параметра вывода ошибок
-     */
-    public function getDebug () {
-        return $this->debug;
-    }
-
-    /**
-     * Включение параметра прерывания работы ПО при ошибке
-     * @param bool $exit
-     */
-    public function setErrorExit ($exit = true) {
-        if ($exit) $this->error_exit = true;
-        else $this->error_exit = false;
-    }
-
-    /**
-     * Возврат параметра прерывания работы ПО при ошибке
-     */
-    public function getErrorExit () {
-        return $this->error_exit;
-    }
-
-    /**
      * Обработка ошибок.
      * Вывод на экран, отправка на почту администратору, сохранение в переменную error.
      * @param bool $message - сообщение об ошибке
@@ -552,30 +514,7 @@ class Oracle extends AbstractDB {
     private function DB_Error ($message=false, $code = '') {
         if ($code && isset($this->error_code[$code])) return false;
         elseif ($code) $this->error_code[$code] = true;
-        //Return and show error
-        $server_ip = (isset($_SERVER['REMOTE_ADDR']))?$_SERVER['REMOTE_ADDR']:'';
-        if (!$server_ip) $server_ip = urldecode(getenv('HTTP_CLIENT_IP'));
-        $ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'-';
-        $err = "Critical Database Error from DBOracle (".WWW_PATH.") \nLink error: ".$_SERVER['REQUEST_URI']."\nReferer: ".$ref."\nServer IP: ".$server_ip."\n".$message;
-        $this->logs[] = preg_replace("/\n/", ' :: ', $err);
-        $error = '<br><span style="color: #FF0000"><b>Critical Database Error from DBOracle ('.WWW_PATH.') '.date('d-m-Y H:i:s').'</b></span><br>';
-        $error .= "<b>Link error:</b> ".$_SERVER['REQUEST_URI']."<br>";
-        $error .= "<b>Referer:</b> ".$ref."<br>";
-        $error .= "<b>Server IP:</b> ".$server_ip."<br>";
-        $error .= '<span style="color: #008000">'.htmlentities($message).':</span> ';
-        if ($this->debug) {
-            if (defined("SITE_CHARSET")) $CODE = SITE_CHARSET;
-            else $CODE = 'utf-8';
-            header("Access-Control-Allow-Origin: *");
-            header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-            header("Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token");
-            header("X-XSS-Protection: 1; mode=block");
-            header("X-Content-Type-Options: nosniff");
-            header("X-Frame-Options: DENY");
-            header("Content-Security-Policy: frame-ancestors 'self'");
-            header("Content-Type: text/html; charset=".$CODE);
-            echo $error;
-        }
+        parent::Error($message);
         if ($this->error_exit) {
             if (!$this->oracle_config['p_connect']) $this->closeOracle();
             exit;

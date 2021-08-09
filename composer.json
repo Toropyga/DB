@@ -1,0 +1,24 @@
+{
+    "name": "toropyga/db",
+    "description": "DB librarys from Toropyga",
+    "authors": [
+        {
+            "name": "Yuri Frantsevich",
+            "email": "frantsevich@gmail.com",
+            "homepage": "https://github.com/Toropyga/DB",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.1.0"
+    },
+    "require-dev": {
+
+    },
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "FYN\\DB\\": "src/"
+        }
+    }
+}

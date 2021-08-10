@@ -1,9 +1,10 @@
 <?php
 /**
  * DB.
- * User: Pilgrim
+ * @author FYN
  * Date: 09.08.2021
- * Time: 14:41
+ * @version 1.0.0
+ * @copyright 2021
  */
 
 namespace FYN\DB;

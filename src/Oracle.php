@@ -258,6 +258,7 @@ class Oracle extends AbstractDB {
                 oci_bind_by_name($stat, $key, $$n, 4096);
             }
         }
+        $curs = false;
         if ($this->cursor) $curs = oci_new_cursor($this->oracle);
         //$curs = 0;
         if (preg_match("/:res\s?(\W)/", $sql)) {

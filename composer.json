@@ -1,6 +1,6 @@
 {
     "name": "toropyga/db",
-    "description": "DB libraries from Toropyga",
+    "description": "Libraries for working with databases from Toropyga",
     "authors": [
         {
             "name": "Yuri Frantsevich",

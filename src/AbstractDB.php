@@ -80,17 +80,18 @@ class AbstractDB {
      * Обработка ошибок.
      * Вывод на экран, сохранение в переменную error.
      * @param bool $message - сообщение об ошибке
+     * @param string $lib_name - имя библиотеки
      * @return bool
      */
-    protected function Error ($message=false) {
+    protected function Error ($message=false, $lib_name = 'AbstractDB') {
         $this->error = true;
         $ip = $this->getIP();
         if (!defined("WWW_PATH")) define("WWW_PATH", $_SERVER['SERVER_NAME']);
         $server_ip = implode("/", $ip);
         $ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'-';
-        $err = "Critical Database Error from DBOracle (".WWW_PATH.") \nLink error: ".$_SERVER['REQUEST_URI']."\nReferer: ".$ref."\nServer IP: ".$server_ip."\n".$message;
+        $err = "Critical Database Error from $lib_name (".WWW_PATH.") \nLink error: ".$_SERVER['REQUEST_URI']."\nReferer: ".$ref."\nServer IP: ".$server_ip."\n".$message;
         $this->logs[] = preg_replace("/\n/", ' :: ', $err);
-        $error = '<br><span style="color: #FF0000"><b>Critical Database Error ('.WWW_PATH.') '.date('d-m-Y H:i:s').'</b></span><br>';
+        $error = '<br><span style="color: #FF0000"><b>Critical Database Error from '.$lib_name.' ('.WWW_PATH.') '.date('d-m-Y H:i:s').'</b></span><br>';
         $error .= "<b>Link error:</b> ".$_SERVER['REQUEST_URI']."<br>";
         $error .= "<b>Referer:</b> ".$ref."<br>";
         $error .= "<b>Server IP:</b> ".$server_ip."<br>";

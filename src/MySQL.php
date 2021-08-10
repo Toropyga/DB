@@ -528,7 +528,7 @@ class MySQL extends AbstractDB {
         if ($query && strlen(trim($query))) $message .= ". QUERY: ".$query;
         $message .= " ERROR: ".$message_bd;
 
-        parent::Error($message);
+        parent::Error($message, 'MySQL');
 
         if ($this->error_exit) {
             if (!$this->db_storage) $this->getClose();

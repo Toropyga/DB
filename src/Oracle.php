@@ -516,7 +516,7 @@ class Oracle extends AbstractDB {
     private function DB_Error ($message=false, $code = '') {
         if ($code && isset($this->error_code[$code])) return false;
         elseif ($code) $this->error_code[$code] = true;
-        parent::Error($message);
+        parent::Error($message, 'Oracle');
         if ($this->error_exit) {
             if (!$this->oracle_config['p_connect']) $this->closeOracle();
             exit;

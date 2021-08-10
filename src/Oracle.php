@@ -113,29 +113,6 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Подключение к БД Oracle
-     * @return bool
-     */
-    public function getOracle () {
-        if (!$this->oracle_config['port']) $this->oracle_config['port'] = '1521';
-        if ($this->oracle_config['use_host'] == 1) $db = $this->oracle_config['host']."/".$this->oracle_config['name'];
-        elseif ($this->oracle_config['use_host'] == 2) $db = "(DESCRIPTION=(ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = ".$this->oracle_config['host'].")(PORT = ".$this->oracle_config['port'].")))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=".$this->oracle_config['name'].")))";
-        else $db = $this->oracle_config['name'];
-        if ($this->oracle_config['p_connect']) $this->oracle = @oci_pconnect($this->oracle_config['user'], $this->oracle_config['pass'], $db, $this->oracle_config['charset']);
-        else $this->oracle = @oci_connect($this->oracle_config['user'], $this->oracle_config['pass'], $db, $this->oracle_config['charset']);
-        if (!$this->oracle) {
-            $e = oci_error();
-            $this->logs[] = $this->error_text."Connect Error: ".$e['message']." :: SERVER: ".$this->oracle_config['host'];
-            $this->DB_Error($this->error_text."Connect Error: ".$e['message']." :: SERVER: ".$this->oracle_config['host'], 'connect');
-            $this->status = false;
-            return false;
-        }
-        elseif (isset($this->error_code['connect']) && $this->error_code['connect']) unset($this->error_code['connect']);
-        $this->status = true;
-        return true;
-    }
-
-    /**
      * Отправка SQL-запроса к БД Oracle и возврат результата запроса
      *
      * @param string $sql - SQL-запрос
@@ -156,12 +133,12 @@ class Oracle extends AbstractDB {
      *      'dub' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
      * @return mixed SQL query result
      */
-    public function getResultsOracle ($sql, $one=0) {
+    public function getResults ($sql, $one=0) {
         if (!$this->status) {
             if ($this->oracle_config['p_connect']) return false;
             else $this->getOracle();
         }
-        $res = $this->queryOracle($sql);
+        $res = $this->query($sql);
         if (is_string($one)) {
             if ($one == 'all') $one = 0;
             elseif ($one == 'one') $one = 1;
@@ -186,10 +163,34 @@ class Oracle extends AbstractDB {
                 else $result = join('', array_values($res[0]));
             }
             elseif (!$one) $result = $res;
-            else $result = $this->res2arrayOracle($res, $one);
+            else $result = $this->res2array($res, $one);
         }
         elseif (!$res) return $res;
         return $result;
+    }
+
+    /**
+     * Подключение к БД Oracle
+     * @return bool
+     */
+    public function getOracle () {
+        $this->error = false;
+        if (!$this->oracle_config['port']) $this->oracle_config['port'] = '1521';
+        if ($this->oracle_config['use_host'] == 1) $db = $this->oracle_config['host']."/".$this->oracle_config['name'];
+        elseif ($this->oracle_config['use_host'] == 2) $db = "(DESCRIPTION=(ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = ".$this->oracle_config['host'].")(PORT = ".$this->oracle_config['port'].")))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=".$this->oracle_config['name'].")))";
+        else $db = $this->oracle_config['name'];
+        if ($this->oracle_config['p_connect']) $this->oracle = @oci_pconnect($this->oracle_config['user'], $this->oracle_config['pass'], $db, $this->oracle_config['charset']);
+        else $this->oracle = @oci_connect($this->oracle_config['user'], $this->oracle_config['pass'], $db, $this->oracle_config['charset']);
+        if (!$this->oracle) {
+            $e = oci_error();
+            $this->logs[] = $this->error_text."Connect Error: ".$e['message']." :: SERVER: ".$this->oracle_config['host'];
+            $this->DB_Error($this->error_text."Connect Error: ".$e['message']." :: SERVER: ".$this->oracle_config['host'], 'getOracle');
+            $this->status = false;
+            return false;
+        }
+        elseif (isset($this->error_code['getOracle']) && $this->error_code['getOracle']) unset($this->error_code['getOracle']);
+        $this->status = true;
+        return true;
     }
 
     /**
@@ -246,8 +247,9 @@ class Oracle extends AbstractDB {
      * @param $sql - запрос
      * @return mixed
      */
-    public function &queryOracle ($sql) {
+    public function &query ($sql) {
         if (!$this->status) return false;
+        $this->error = false;
         $stat = oci_parse($this->oracle, $sql);
         foreach ($this->sql_param as $key => $val) {
             if (preg_match("/$key/", $sql)) {
@@ -348,7 +350,7 @@ class Oracle extends AbstractDB {
      * @param int $one - тип обработки (см. функцию getResults)
      * @return array
      */
-    private function res2arrayOracle ($res, $one) {
+    private function res2array ($res, $one) {
         $result = array();
         switch ($one) {
             case 3:
@@ -404,13 +406,13 @@ class Oracle extends AbstractDB {
      * @param int $all - все таблицы (>0) или только пользовательские (=0)
      * @return array|mixed
      */
-    private function getListFieldsOracle ($table, $all = 0) { // Get Filds from table
+    private function getListFields ($table, $all = 0) { // Get Filds from table
         $name_field = array();
         if (!isset($this->db_TableListOracle[$table])) {
-            if (in_array($table, $this->getTableListOracle())) {
+            if (in_array($table, $this->getTableList())) {
                 if ($all) $sql = "SELECT column_name FROM all_tab_cols WHERE table_name = '$table'";
                 else $sql = "SELECT column_name FROM user_tab_cols WHERE table_name = '$table'";
-                $fields = $this->getResultsOracle($sql, 4);
+                $fields = $this->getResults($sql, 4);
                 foreach ($fields as $key => $value) $name_field[] = $value['Field'];
                 $this->db_TableListOracle[$table] = $name_field;
             }
@@ -431,10 +433,10 @@ class Oracle extends AbstractDB {
      * @param int $all - все таблицы (>0) или только пользовательские (=0)
      * @return mixed
      */
-    private function getTableListOracle ($all = 0) {
+    private function getTableList ($all = 0) {
         if ($all) $sql = "SELECT table_name FROM all_tables";
         else $sql = "SELECT table_name FROM user_tables";
-        $Tables = $this->getResultsOracle($sql, 4);
+        $Tables = $this->getResults($sql, 4);
         return $Tables;
     }
 
@@ -445,8 +447,8 @@ class Oracle extends AbstractDB {
      * @param array $values - массив данных для добавления в формате array(['имя_поля'] => 'значение');
      * @return string
      */
-    public function getInsertSQLOracle ($table, $values) { // Create Insert query
-        if (!$tab_fields = $this->getListFieldsOracle($table)) return FALSE;
+    public function getInsertSQL ($table, $values) { // Create Insert query
+        if (!$tab_fields = $this->getListFields($table)) return FALSE;
         if (!is_array($values)) {
             $this->logs[] = $this->error_text."Could not create update query: Error values - $values (not array)";
             return FALSE;
@@ -472,8 +474,8 @@ class Oracle extends AbstractDB {
      * @param mixed $index - массив данных условия WHERE в формате array(['имя_поля'] => 'значение');
      * @return string
      */
-    public function getUpdateSQLOracle ($table, $values, $index=FALSE) { // Create Update query
-        if (!$tab_fields = $this->getListFieldsOracle($table)) {
+    public function getUpdateSQL ($table, $values, $index=FALSE) { // Create Update query
+        if (!$tab_fields = $this->getListFields($table)) {
             return FALSE;
         }
         if (!is_array($values)) {

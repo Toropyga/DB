@@ -13,7 +13,8 @@
         "php": ">=5.1.0",
         "ext-mysqli": "*",
         "ext-json": "*",
-        "ext-oci8": "*"
+        "ext-oci8": "*",
+        "ext-pdo": "*"
     },
     "require-dev": {
 

@@ -112,53 +112,6 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Подключение к БД MySQL
-     * @return bool
-     */
-    private function getConnect () { // Connect to database
-        $code = 'getConnect';
-        if ($this->use_transaction) {
-            if ($this->db_port) {
-                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port", $code);
-                elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
-            }
-            else {
-                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port", $code);
-                elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
-            }
-            @mysqli_autocommit($this->db_connect, TRUE);
-        }
-        else {
-            if ($this->db_port) $host = $this->db_host.':'.$this->db_port;
-            else $host = $this->db_host;
-            if (!$this->db_connect = @mysqli_connect($host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port", $code);
-            elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
-        }
-        if ($this->log_all) $this->logs[] = "Connect to MySQL Host: ".$this->db_host.", User: ". $this->db_user.", DB: ".$this->db_name." - success";
-        $this->setCharset();
-        if (!count($this->db_Tables)) $this->getTableList();
-        $this->status = true;
-        return true;
-    }
-
-    /**
-     * Закрытие подключения к MySQL
-     * @return bool
-     */
-    public function getClose () {
-        if ($this->db_connect) {
-            @mysqli_close($this->db_connect);
-            if ($this->log_all) $this->logs[] = "Disconnect from MySQL Host: " . $this->db_host . " - success";
-            $this->status = false;
-        }
-        else {
-            if ($this->status) $this->status = false;
-            if ($this->log_all) $this->logs[] = "MySQL Host: " . $this->db_host . " - is already disconnected";
-        }
-        return true;
-    }
-
-    /**
      * Основная функция для запросов на выборку
      * Set SQL query to DataBase and return query Result
      *
@@ -213,6 +166,53 @@ class MySQL extends AbstractDB {
         else $result = $res;
         if (!$this->db_storage) $this->getClose();
         return $result;
+    }
+
+    /**
+     * Подключение к БД MySQL
+     * @return bool
+     */
+    private function getConnect () { // Connect to database
+        $code = 'getConnect';
+        if ($this->use_transaction) {
+            if ($this->db_port) {
+                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port", $code);
+                elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+            }
+            else {
+                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port", $code);
+                elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+            }
+            @mysqli_autocommit($this->db_connect, TRUE);
+        }
+        else {
+            if ($this->db_port) $host = $this->db_host.':'.$this->db_port;
+            else $host = $this->db_host;
+            if (!$this->db_connect = @mysqli_connect($host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port", $code);
+            elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+        }
+        if ($this->log_all) $this->logs[] = "Connect to MySQL Host: ".$this->db_host.", User: ". $this->db_user.", DB: ".$this->db_name." - success";
+        $this->setCharset();
+        if (!count($this->db_Tables)) $this->getTableList();
+        $this->status = true;
+        return true;
+    }
+
+    /**
+     * Закрытие подключения к MySQL
+     * @return bool
+     */
+    public function getClose () {
+        if ($this->db_connect) {
+            @mysqli_close($this->db_connect);
+            if ($this->log_all) $this->logs[] = "Disconnect from MySQL Host: " . $this->db_host . " - success";
+            $this->status = false;
+        }
+        else {
+            if ($this->status) $this->status = false;
+            if ($this->log_all) $this->logs[] = "MySQL Host: " . $this->db_host . " - is already disconnected";
+        }
+        return true;
     }
 
     /**

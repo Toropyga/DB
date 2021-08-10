@@ -33,6 +33,12 @@ class AbstractDB {
     protected $error_exit = false; //Exit if script contain error
 
     /**
+     * Признак наличия ошибки
+     * @var bool
+     */
+    public $error = false;
+
+    /**
      * Коды существующих ошибок
      * @var array
      */
@@ -77,6 +83,7 @@ class AbstractDB {
      * @return bool
      */
     protected function Error ($message=false) {
+        $this->error = true;
         $ip = $this->getIP();
         if (!defined("WWW_PATH")) define("WWW_PATH", $_SERVER['SERVER_NAME']);
         $server_ip = implode("/", $ip);

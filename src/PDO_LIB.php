@@ -4,7 +4,7 @@
  * !!! В процессе разработки !!!
  * @author FYN
  * Date: 16/09/2019
- * @version 0.1.1
+ * @version 0.1.2
  * @copyright 2019-2021
  */
 
@@ -590,7 +590,9 @@ class PDO_LIB extends AbstractDB {
         if ($code && isset($this->error_code[$code])) return false;
         elseif ($code) $this->error_code[$code] = true;
         $message_bd = '';
-        if (method_exists($this->db_connect, 'errorInfo')) $message_bd = htmlentities($this->db_connect->errorInfo());
+        if (is_object($this->db_connect)) {
+            if (method_exists($this->db_connect, 'errorInfo')) $message_bd = htmlentities($this->db_connect->errorInfo());
+        }
         if (!$message_bd && is_object($pdo) && method_exists($pdo, 'errorInfo')) $message_bd = $pdo->errorInfo();
         elseif (!$message_bd && method_exists($this->pdo, 'errorInfo')) $message_bd = $this->pdo->errorInfo();
         if (is_array($message_bd)) $message_bd = $message_bd[2];

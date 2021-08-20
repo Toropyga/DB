@@ -4,7 +4,7 @@
  * Класс для работы с БД MySQL
  * @author FYN
  * Date: 15/04/2005
- * @version 5.0.0
+ * @version 5.0.1
  * @copyright 2005-2021
  */
 
@@ -521,7 +521,8 @@ class MySQL extends AbstractDB {
         if ($code && isset($this->error_code[$code])) return false;
         elseif ($code) $this->error_code[$code] = true;
 
-        $message_bd = htmlentities(@mysqli_error($this->db_connect));
+        if (is_object($this->db_connect)) $message_bd = htmlentities(@mysqli_error($this->db_connect));
+        else $message_bd = '';
         list($mess) = preg_split("/:/", $message);
         $query = htmlentities(trim(strtr($message, array($mess.":"=>''))));
         $message = $mess;

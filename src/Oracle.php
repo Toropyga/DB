@@ -4,7 +4,7 @@
  * Класс для работы с БД Oracle
  * @author FYN
  * Date: 12/03/2009
- * @version 3.0.0
+ * @version 3.0.1
  * @copyright 2009-2021
  */
 
@@ -99,7 +99,7 @@ class Oracle extends AbstractDB {
         if (defined('DB_ORACLE_LOG_ALL')) $this->log_all = DB_ORACLE_LOG_ALL;
 
         if (defined('DB_ORACLE_USE_HOST') && !in_array($USE_HOST, array(0,1,2))) $USE_HOST = DB_ORACLE_USE_HOST;
-        if ($USE_HOST && ($USE_HOST == 2 || $USE_HOST == 1)) $this->oracle_config['use_host'] = $USE_HOST;
+        if ($USE_HOST == 2 || $USE_HOST == 1) $this->oracle_config['use_host'] = $USE_HOST;
 
         if (!$no_connect) $this->getOracle();
     }
@@ -139,19 +139,8 @@ class Oracle extends AbstractDB {
             else $this->getOracle();
         }
         $res = $this->query($sql);
-        if (is_string($one)) {
-            if ($one == 'all') $one = 0;
-            elseif ($one == 'one') $one = 1;
-            elseif ($one == 'row') $one = 2;
-            elseif ($one == 'column') $one = 3;
-            elseif ($one == 'col') $one = 4;
-            elseif ($one == 'dub') $one = 5;
-            else {
-                $this->logs[] = "Wrong parameter ONE: ".$one;
-                $one = 0;
-            }
-        }
-        if ($one > 5 || $one < 0) {
+        $one = parent::checkReturnType($one);
+        if ($one === false) {
             $this->logs[] = "Wrong parameter ONE: ".$one;
             $one = 0;
         }
@@ -245,9 +234,9 @@ class Oracle extends AbstractDB {
     /**
      * Выполнение запроса к БД Oracle
      * @param $sql - запрос
-     * @return mixed
+     * @return array|false
      */
-    public function &query ($sql) {
+    public function query ($sql) {
         if (!$this->status) return false;
         $this->error = false;
         $stat = oci_parse($this->oracle, $sql);
@@ -268,10 +257,11 @@ class Oracle extends AbstractDB {
         }
         if ($stat) {
             if ($this->cursor && $curs) {
+                $run_time = time();
                 if (@oci_execute($stat) && @oci_execute($curs)) {
+                    $this->run_time = time()-$run_time;
                     $res = array();
                     while ($data = @oci_fetch_array($curs, OCI_ASSOC + OCI_RETURN_NULLS)) $res[] = $data;
-                    //while ($data = oci_fetch_array($curs, OCI_BOTH + OCI_RETURN_LOBS)) $res[] = $data;
                     @oci_free_statement($curs);
                     @oci_free_statement($stat);
                     if (isset($this->error_code['query']) && $this->error_code['query']) unset($this->error_code['query']);
@@ -280,7 +270,6 @@ class Oracle extends AbstractDB {
                         $n = strtr($key, array(':'=>''));
                         if (isset($$n))$this->stat[$n] = $$n;
                     }
-                    //if (count($this->stat)) array_merge($res, $this->stat);
                     if (count($this->stat)) $res = $this->stat;
                 }
                 else {
@@ -302,7 +291,6 @@ class Oracle extends AbstractDB {
                 if (@oci_execute($stat)) {
                     $res = array();
                     while ($data = oci_fetch_array($stat, OCI_ASSOC + OCI_RETURN_NULLS)) $res[] = $data;
-                    //while ($data = oci_fetch_array($curs, OCI_BOTH + OCI_RETURN_LOBS)) $res[] = $data;
                     @oci_free_statement($stat);
                     if (isset($this->error_code['query']) && $this->error_code['query']) unset($this->error_code['query']);
                     $this->stat = array();
@@ -393,12 +381,11 @@ class Oracle extends AbstractDB {
 
     /**
      * Отключение от БД Oracle
-     * @return bool
+     * @return void
      */
     private function closeOracle () {
         if ($this->oracle) oci_close($this->oracle);
         $this->status = false;
-        return true;
     }
 
     /**
@@ -437,8 +424,7 @@ class Oracle extends AbstractDB {
     private function getTableList ($all = 0) {
         if ($all) $sql = "SELECT table_name FROM all_tables";
         else $sql = "SELECT table_name FROM user_tables";
-        $Tables = $this->getResults($sql, 4);
-        return $Tables;
+        return $this->getResults($sql, 4);
     }
 
     /**
@@ -463,8 +449,7 @@ class Oracle extends AbstractDB {
                 $val = ($val)?"$val, '$value'":"'$value'";
             }
         }
-        $sql = "INSERT INTO $table ($fields) VALUES ($val)";
-        return $sql;
+        return "INSERT INTO $table ($fields) VALUES ($val)";
     }
 
     /**
@@ -503,8 +488,7 @@ class Oracle extends AbstractDB {
             }
         }
         if ($ind) $ind = "WHERE $ind";
-        $sql = "UPDATE $table SET $fields $ind";
-        return $sql;
+        return "UPDATE $table SET $fields $ind";
     }
 
     /**

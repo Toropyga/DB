@@ -3,7 +3,7 @@
  * DB.
  * @author FYN
  * Date: 09.08.2021
- * @version 1.0.6
+ * @version 1.0.7
  * @copyright 2021
  */
 
@@ -20,6 +20,12 @@ class AbstractDB {
      * @var string
      */
     protected $log_file = 'db.log';
+
+    /**
+     * Время выполнения запроса
+     * @var int
+     */
+    public $run_time = 0;
 
     /**
      * Включить или отключить отладочные функции
@@ -78,6 +84,35 @@ class AbstractDB {
     }
 
     /**
+     * Возврат времени выполнения последнего SQL запроса
+     * @return int
+     */
+    public function getRunTime () {
+        return $this->run_time;
+    }
+
+    /**
+     * Проверка параметра вывода данных
+     * @param $one - параметр вывода данных
+     * @return false|int
+     */
+    protected function checkReturnType ($one) {
+        if (is_string($one)) {
+            if ($one == 'all') $one = 0;
+            elseif ($one == 'one') $one = 1;
+            elseif ($one == 'row') $one = 2;
+            elseif ($one == 'column') $one = 3;
+            elseif ($one == 'col') $one = 4;
+            elseif ($one == 'dub') $one = 5;
+            elseif ($one == 'dub_all') $one = 6;
+            elseif ($one == 'explain') $one = 7;
+            else return false;
+        }
+        if ($one > 7 || $one < 0) return false;
+        return $one;
+    }
+
+    /**
      * Обработка ошибок.
      * Вывод на экран, сохранение в переменную error.
      * @param bool $message - сообщение об ошибке
@@ -123,7 +158,7 @@ class AbstractDB {
 
     /**
      * Определение IP адреса с которого открывается страница
-     * @return mixed
+     * @return array
      */
     private function getIP () {
         $ipn = (isset($_SERVER['REMOTE_ADDR']))?$_SERVER['REMOTE_ADDR']:'';

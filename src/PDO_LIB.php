@@ -4,7 +4,7 @@
  * !!! В процессе разработки !!!
  * @author FYN
  * Date: 16/09/2019
- * @version 0.1.2
+ * @version 0.1.3
  * @copyright 2019-2021
  */
 
@@ -134,24 +134,12 @@ class PDO_LIB extends AbstractDB {
      *      'dub' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
      *      'dub_all' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2), если [значение поля 1] повторяется, то массив принимает вид [значение поля 1] => array([0] => значение поля 2, [1] => значение поля 2...)
      *
-     * @return mixed SQL query result
+     * @return array|bool|string SQL query result
      */
     public function getResults ($sql, $one=0) { // Get query results
         $this->query($sql);
-        if (is_string($one)) {
-            if ($one == 'all') $one = 0;
-            elseif ($one == 'one') $one = 1;
-            elseif ($one == 'row') $one = 2;
-            elseif ($one == 'column') $one = 3;
-            elseif ($one == 'col') $one = 4;
-            elseif ($one == 'dub') $one = 5;
-            elseif ($one == 'dub_all') $one = 6;
-            else {
-                $this->logs[] = "Wrong parameter ONE: ".$one;
-                $one = 0;
-            }
-        }
-        if ($one > 5 || $one < 0) {
+        $one = parent::checkReturnType($one);
+        if ($one === false) {
             $this->logs[] = "Wrong parameter ONE: ".$one;
             $one = 0;
         }
@@ -189,7 +177,8 @@ class PDO_LIB extends AbstractDB {
                         if ($one == 3) $result[$key][] = $value;
                         else $result[] = $value;
                     }
-                } elseif ($one == 5 && sizeof($row) == 2) {
+                }
+                elseif ($one == 5 && sizeof($row) == 2) {
                     $idx = 0;
                     $index = '';
                     $value = '';
@@ -373,7 +362,9 @@ class PDO_LIB extends AbstractDB {
     public function query ($sql) {
         $code = 'query';
         try {
+            $run_time = time();
             $this->pdo = $this->db_connect->query($sql);
+            $this->run_time = time()-$run_time;
             if (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
         }
         catch (PDOException $e) {
@@ -487,8 +478,7 @@ class PDO_LIB extends AbstractDB {
                 $val = ($val)?"$val, $value":"$value";
             }
         }
-        $sql = "INSERT INTO $table ($fields) VALUES ($val)";
-        return $sql;
+        return "INSERT INTO $table ($fields) VALUES ($val)";
     }
 
     /**
@@ -531,8 +521,7 @@ class PDO_LIB extends AbstractDB {
             }
         }
         if ($ind) $ind = "WHERE $ind";
-        $sql = "UPDATE $table SET $fields $ind";
-        return $sql;
+        return "UPDATE $table SET $fields $ind";
     }
 
     /**
@@ -552,7 +541,6 @@ class PDO_LIB extends AbstractDB {
             }
             elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
             foreach ($index as $key => $value) {
-                $ind = '';
                 if (in_array($key,$tab_fields)) {
                     if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
                     elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
@@ -561,8 +549,7 @@ class PDO_LIB extends AbstractDB {
             }
         }
         if ($ind) $ind = "WHERE $ind";
-        $sql = "DELETE FROM $table $ind";
-        return $sql;
+        return "DELETE FROM $table $ind";
     }
 
     /**

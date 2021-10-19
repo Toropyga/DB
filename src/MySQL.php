@@ -4,11 +4,13 @@
  * Класс для работы с БД MySQL
  * @author FYN
  * Date: 15/04/2005
- * @version 5.0.1
+ * @version 5.0.2
  * @copyright 2005-2021
  */
 
 namespace FYN\DB;
+
+use mysqli_result;
 
 class MySQL extends AbstractDB {
 
@@ -125,6 +127,7 @@ class MySQL extends AbstractDB {
      *      3 - (выборка: множество строк / один столбец) ожидаем ассоциативный массив массивов (имя_поля => array([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
      *      4 - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
      *      5 - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
+     *      7 - возврат данных по выполнению запроса (EXPLAIN)
      *  строковые (аналог числовых):
      *      'all' или '' - (выборка: любое количество строк и столбцов) ожидаем массив ассоциативных массивов ([] => array(имя_поля => значение));
      *      'one' - (выборка: одна строка / один столбец) ожидаем строку, если при выборке получилось более одного столбца - возвращает ассоциативный массив (имя_поля => значение), если более одной строки - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
@@ -132,27 +135,21 @@ class MySQL extends AbstractDB {
      *      'column' - (выборка: множество строк / один столбец) ожидаем ассоциативный массив массивов (имя_поля => array([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
      *      'col' - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
      *      'dub' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
+     *      'explain' - возврат данных по выполнению запроса (EXPLAIN)
      *
-     * @return mixed SQL query result
+     * @return array|bool|mysqli_result|string|string[]|null SQL query result
      */
     public function getResults ($sql, $one=0) { // Set query results
-        $res = $this->query($sql, 1);
-        if (is_string($one)) {
-            if ($one == 'all') $one = 0;
-            elseif ($one == 'one') $one = 1;
-            elseif ($one == 'row') $one = 2;
-            elseif ($one == 'column') $one = 3;
-            elseif ($one == 'col') $one = 4;
-            elseif ($one == 'dub') $one = 5;
-            else {
-                $this->logs[] = "Wrong parameter ONE: ".$one;
-                $one = 0;
-            }
-        }
-        if ($one > 5 || $one < 0) {
+        $one = parent::checkReturnType($one);
+        if ($one === false) {
             $this->logs[] = "Wrong parameter ONE: ".$one;
             $one = 0;
         }
+        if ($one == 7) {
+            $sql = 'EXPLAIN '.$sql;
+            $one = 2;
+        }
+        $res = $this->query($sql, 1);
         if (!is_string($res) && is_object($res)) {
             $col_row = mysqli_num_rows($res);
             if (!$col_row && $one != 1) return array();
@@ -228,7 +225,9 @@ class MySQL extends AbstractDB {
         if (!$connected) return false;
         if (!$this->getDB()) return false;
         if (!is_string($sql) || !$sql || trim($sql) == '') return false;
+        $run_time = time();
         $res = @mysqli_query($this->db_connect, $sql);
+        $this->run_time = time() - $run_time;
         if ($res === false) {
             $message = "Could not query: $sql;";// Error message: ".mysqli_error($this->db_connect);
             $this->DB_Error($message, $code);
@@ -444,7 +443,6 @@ class MySQL extends AbstractDB {
             }
             elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
             foreach ($index as $key => $value) {
-                $ind = '';
                 if (in_array($key,$tab_fields)) {
                     if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
                     elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";

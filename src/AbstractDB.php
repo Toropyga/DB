@@ -3,7 +3,7 @@
  * DB.
  * @author FYN
  * Date: 09.08.2021
- * @version 1.0.7
+ * @version 1.0.8
  * @copyright 2021
  */
 
@@ -148,9 +148,13 @@ class AbstractDB {
 
     /**
      * Возвращает логи
-     * @return array
+     * @param string $type - тип возвращаемых данных: all - всё (по умолчанию), log - массив логов, file - имя файла логов, last - последняя строка логов
+     * @return array|string
      */
-    public function getLogs () {
+    public function getLogs ($type = 'all') {
+        if ($type == 'log') return $this->logs;
+        elseif ($type == 'file') return $this->log_file;
+        elseif ($type == 'last') return array_pop($this->logs);
         $return['log'] = $this->logs;
         $return['file'] = $this->log_file;
         return $return;

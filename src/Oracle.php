@@ -259,7 +259,6 @@ class Oracle extends AbstractDB {
             if ($this->cursor && $curs) {
                 $run_time = time();
                 if (@oci_execute($stat) && @oci_execute($curs)) {
-                    $this->run_time = time()-$run_time;
                     $res = array();
                     while ($data = @oci_fetch_array($curs, OCI_ASSOC + OCI_RETURN_NULLS)) $res[] = $data;
                     @oci_free_statement($curs);
@@ -285,6 +284,7 @@ class Oracle extends AbstractDB {
                     }
                     $res = false;
                 }
+                $this->run_time = time()-$run_time;
                 if (isset($this->error_code['curs']) && $this->error_code['curs']) unset($this->error_code['curs']);
             }
             elseif (!$this->cursor) {

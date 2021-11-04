@@ -4,7 +4,7 @@
  * Класс для работы с БД MySQL
  * @author FYN
  * Date: 15/04/2005
- * @version 5.0.2
+ * @version 5.0.3
  * @copyright 2005-2021
  */
 
@@ -316,7 +316,7 @@ class MySQL extends AbstractDB {
 
     /**
      * Получение списка таблиц в БД
-     * @return array|mixed
+     * @return array
      */
     public function getTableList () {
         $sql = "SHOW TABLES FROM ".$this->db_name;
@@ -332,7 +332,7 @@ class MySQL extends AbstractDB {
     public function getListFields($table) { // Get Fields from table
         $code = 'getListFields';
         $name_field = array();
-        if (!count($this->db_Tables)) $this->getTableList();
+        if (!in_array($table, $this->db_Tables)) $this->getTableList();
         if (!in_array($table, $this->db_Tables)) {
             $this->DB_Error("Could not create List Fields: Table - $table not exists", $code);
             return false;

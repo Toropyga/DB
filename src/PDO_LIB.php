@@ -4,7 +4,7 @@
  * !!! В процессе разработки !!!
  * @author FYN
  * Date: 16/09/2019
- * @version 0.1.3
+ * @version 0.1.4
  * @copyright 2019-2021
  */
 
@@ -423,7 +423,7 @@ class PDO_LIB extends AbstractDB {
     public function getListFields($table) { // Get Fields from table
         $code = 'getListFields';
         $name_field = array();
-        if (!count($this->db_Tables)) $this->getTableList();
+        if (!in_array($table, $this->db_Tables)) $this->getTableList();
         if (!in_array($table, $this->db_Tables)) {
             $this->DB_Error("Could not create List Fields: Table - $table not exists", $code);
             return false;

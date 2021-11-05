@@ -230,7 +230,7 @@ class Oracle extends AbstractDB {
      *    SQLT_LNG - для LONG-полей;
      *    SQLT_LBI - для LONG RAW полей;
      *    SQLT_RSET - для курсоров, созданных функцией oci_new_cursor();
-     *    SQLT_BOL или OCI_B_BOL - для PL/SQL BOOLEAN
+     *    // SQLT_BOL или OCI_B_BOL - для PL/SQL BOOLEAN
      * @param array $bind
      */
     public function setBind ($bind = array()) {
@@ -260,7 +260,7 @@ class Oracle extends AbstractDB {
      * @return array|false
      */
     public function query ($sql) {
-        $types = array(SQLT_BFILEE, OCI_B_BFILE, SQLT_CFILEE, OCI_B_CFILEE, SQLT_CLOB, OCI_B_CLOB, SQLT_BLOB, OCI_B_BLOB, SQLT_RDD, OCI_B_ROWID, SQLT_NTY, OCI_B_NTY, SQLT_INT, OCI_B_INT, SQLT_CHR, SQLT_BIN, OCI_B_BIN, SQLT_LNG, SQLT_LBI, SQLT_RSET, SQLT_BOL, OCI_B_BOL);
+        $types = array(SQLT_BFILEE, OCI_B_BFILE, SQLT_CFILEE, OCI_B_CFILEE, SQLT_CLOB, OCI_B_CLOB, SQLT_BLOB, OCI_B_BLOB, SQLT_RDD, OCI_B_ROWID, SQLT_NTY, OCI_B_NTY, SQLT_INT, OCI_B_INT, SQLT_CHR, SQLT_BIN, OCI_B_BIN, SQLT_LNG, SQLT_LBI, SQLT_RSET); //, SQLT_BOL, OCI_B_BOL);
         if (!$this->status) return false;
         $this->error = false;
         $stat = oci_parse($this->oracle, $sql);

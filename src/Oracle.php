@@ -4,7 +4,7 @@
  * Класс для работы с БД Oracle
  * @author FYN
  * Date: 12/03/2009
- * @version 3.1.0
+ * @version 3.1.1
  * @copyright 2009-2021
  */
 
@@ -264,6 +264,7 @@ class Oracle extends AbstractDB {
         if (!$this->status) return false;
         $this->error = false;
         $stat = oci_parse($this->oracle, $sql);
+        $replace = array();
         foreach ($this->sql_param as $key => $val) {
             if (preg_match("/$key/", $sql)) {
                 $n = strtr($key, array(':'=>''));
@@ -276,6 +277,7 @@ class Oracle extends AbstractDB {
                     $$n = $val['value'];
                 }
                 else $$n = $val;
+                $replace[$key] = $$n;
                 oci_bind_by_name($stat, $key, $$n, $max_length, $type);
             }
         }
@@ -305,12 +307,12 @@ class Oracle extends AbstractDB {
                 }
                 else {
                     if (is_array(oci_error($stat))) {
-                        $sql_print = strtr(join(' :: ', oci_error($stat)), $this->sql_param);
+                        $sql_print = strtr(join(' :: ', oci_error($stat)), $replace);
                         $this->logs[] = $this->error_text . $sql_print;
                         $this->DB_Error($this->error_text . $sql_print, 'query');
                     }
                     elseif (is_string(oci_error($stat))) {
-                        $sql_print = strtr(oci_error($stat), $this->sql_param);
+                        $sql_print = strtr(oci_error($stat), $replace);
                         $this->logs[] = $this->error_text . $sql_print;
                         $this->DB_Error($this->error_text . $sql_print, 'query');
                     }
@@ -334,12 +336,12 @@ class Oracle extends AbstractDB {
                 }
                 else {
                     if (is_array(oci_error($stat))) {
-                        $sql_print = strtr(join(' :: ', oci_error($stat)), $this->sql_param);
+                        $sql_print = strtr(join(' :: ', oci_error($stat)), $replace);
                         $this->logs[] = $this->error_text . $sql_print;
                         $this->DB_Error($this->error_text . $sql_print, 'query');
                     }
                     elseif (is_string(oci_error($stat))) {
-                        $sql_print = strtr(oci_error($stat), $this->sql_param);
+                        $sql_print = strtr(oci_error($stat), $replace);
                         $this->logs[] = $this->error_text . $sql_print;
                         $this->DB_Error($this->error_text . $sql_print, 'query');
                     }
@@ -348,7 +350,7 @@ class Oracle extends AbstractDB {
                 if (isset($this->error_code['curs']) && $this->error_code['curs']) unset($this->error_code['curs']);
             }
             else {
-                $sql_print = strtr($sql, $this->sql_param);
+                $sql_print = strtr($sql, $replace);
                 $this->logs[] = $this->error_text.'ERROR $curs '."$sql_print";
                 $this->DB_Error($this->error_text.'ERROR $curs '."$sql_print", 'curs');
                 $res = false;
@@ -356,7 +358,7 @@ class Oracle extends AbstractDB {
             if (isset($this->error_code['stat']) && $this->error_code['stat']) unset($this->error_code['stat']);
         }
         else {
-            $sql_print = strtr($sql, $this->sql_param);
+            $sql_print = strtr($sql, $replace);
             $this->logs[] = $this->error_text.'ERROR $stat '."$sql_print";
             $this->DB_Error($this->error_text.'ERROR $stat '."$sql_print", 'stat');
             $res = false;

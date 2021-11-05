@@ -3,7 +3,7 @@
  * DB.
  * @author FYN
  * Date: 09.08.2021
- * @version 1.1.1
+ * @version 1.1.2
  * @copyright 2021
  */
 

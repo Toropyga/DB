@@ -4,7 +4,7 @@
  * Класс для работы с БД Oracle
  * @author FYN
  * Date: 12/03/2009
- * @version 3.0.1
+ * @version 3.1.0
  * @copyright 2009-2021
  */
 
@@ -207,7 +207,30 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Установка переменных
+     * Установка переменных.
+     * На вход принимается массив двух видов:
+     *      1. array(':key' => 'value'),
+     *          где ':key' - имя переменной, 'value' - значение
+     *      2. array(':key' => array('length' => '12345', 'type' => OCI_B_INT, 'value' => '555555')),
+     *          где ':key' - имя переменной,
+     *              внутренний массив содержит поля:
+     *                  'length' - максимальный размер данных (-1 - текущий размер значения),
+     *                  'type' - тип данных, к которому Oracle будет приводить значения (см. ниже),
+     *                  'value' - значение
+     * Допустимые значения типов (https://www.php.net/manual/ru/function.oci-bind-by-name.php):
+     *    SQLT_BFILEE или OCI_B_BFILE - для BFILE-объектов;
+     *    SQLT_CFILEE или OCI_B_CFILEE - для CFILE-объектов;
+     *    SQLT_CLOB или OCI_B_CLOB - для CLOB-объектов;
+     *    SQLT_BLOB или OCI_B_BLOB - для BLOB-объектов;
+     *    SQLT_RDD или OCI_B_ROWID - для ROWID-объектов;
+     *    SQLT_NTY или OCI_B_NTY - для именованных типов даты;
+     *    SQLT_INT или OCI_B_INT - для целых чисел;
+     *    SQLT_CHR - для символов VARCHAR;
+     *    SQLT_BIN или OCI_B_BIN - для RAW-полей;
+     *    SQLT_LNG - для LONG-полей;
+     *    SQLT_LBI - для LONG RAW полей;
+     *    SQLT_RSET - для курсоров, созданных функцией oci_new_cursor();
+     *    SQLT_BOL или OCI_B_BOL - для PL/SQL BOOLEAN
      * @param array $bind
      */
     public function setBind ($bind = array()) {
@@ -237,14 +260,23 @@ class Oracle extends AbstractDB {
      * @return array|false
      */
     public function query ($sql) {
+        $types = array(SQLT_BFILEE, OCI_B_BFILE, SQLT_CFILEE, OCI_B_CFILEE, SQLT_CLOB, OCI_B_CLOB, SQLT_BLOB, OCI_B_BLOB, SQLT_RDD, OCI_B_ROWID, SQLT_NTY, OCI_B_NTY, SQLT_INT, OCI_B_INT, SQLT_CHR, SQLT_BIN, OCI_B_BIN, SQLT_LNG, SQLT_LBI, SQLT_RSET, SQLT_BOL, OCI_B_BOL);
         if (!$this->status) return false;
         $this->error = false;
         $stat = oci_parse($this->oracle, $sql);
         foreach ($this->sql_param as $key => $val) {
             if (preg_match("/$key/", $sql)) {
                 $n = strtr($key, array(':'=>''));
-                $$n = $val;
-                oci_bind_by_name($stat, $key, $$n, 4096);
+                $max_length = 4096;
+                $type =  SQLT_CHR;
+                if (is_array($val)) {
+                    if (isset($val['length'])) $max_length = $val['length']*1;
+                    if (isset($val['type']) && in_array($type, $types)) $type = $val['type'];
+                    if (!isset($val['value'])) $val['value'] = '';
+                    $$n = $val['value'];
+                }
+                else $$n = $val;
+                oci_bind_by_name($stat, $key, $$n, $max_length, $type);
             }
         }
         $curs = false;

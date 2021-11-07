@@ -4,7 +4,7 @@
  * Класс для работы с БД Oracle
  * @author FYN
  * Date: 12/03/2009
- * @version 3.1.1
+ * @version 3.1.2
  * @copyright 2009-2021
  */
 
@@ -284,7 +284,7 @@ class Oracle extends AbstractDB {
         $curs = false;
         if ($this->cursor) $curs = oci_new_cursor($this->oracle);
         //$curs = 0;
-        if (preg_match("/:res\s?(\W)/", $sql)) {
+        if (!isset($this->sql_param[':res']) && preg_match("/:res\s?(\W)/", $sql)) {
             //oci_bind_by_name($stat, ":res", $curs, -1, OCI_B_CURSOR);
             oci_bind_by_name($stat, ":res", $curs, -1, SQLT_RSET);
             //oci_bind_by_name($stat, ":res", $curs, 4096);

@@ -3,7 +3,7 @@
 Классы для работы с базами данных
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v1.1.2-blue.svg)
+![Version](https://img.shields.io/badge/version-v1.1.3-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v5.1_--_v8-blueviolet.svg)
 
 ## Содержание

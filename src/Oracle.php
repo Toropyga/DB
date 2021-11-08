@@ -4,7 +4,7 @@
  * Класс для работы с БД Oracle
  * @author FYN
  * Date: 12/03/2009
- * @version 3.1.2
+ * @version 3.1.3
  * @copyright 2009-2021
  */
 
@@ -72,6 +72,25 @@ class Oracle extends AbstractDB {
     private $stat = array();
 
     /**
+     * Версия клиента
+     * @var string
+     */
+    public $client_version = '';
+
+    /**
+     * Версия сервера
+     * @var string
+     */
+    public $server_version = '';
+
+    /**
+     * Типы полей в БД.
+     * Используются при задании типа данных переменной в запросе.
+     * @var array
+     */
+    private $types = array(SQLT_BFILEE, OCI_B_BFILE, SQLT_CFILEE, OCI_B_CFILEE, SQLT_CLOB, OCI_B_CLOB, SQLT_BLOB, OCI_B_BLOB, SQLT_RDD, OCI_B_ROWID, SQLT_NTY, OCI_B_NTY, SQLT_INT, OCI_B_INT, SQLT_CHR, SQLT_BIN, OCI_B_BIN, SQLT_LNG, SQLT_LBI, SQLT_RSET);
+
+    /**
      * DBOracle constructor.
      * @param string $HOST - сервер
      * @param string $NAME - имя базы данных
@@ -100,6 +119,11 @@ class Oracle extends AbstractDB {
 
         if (defined('DB_ORACLE_USE_HOST') && !in_array($USE_HOST, array(0,1,2))) $USE_HOST = DB_ORACLE_USE_HOST;
         if ($USE_HOST == 2 || $USE_HOST == 1) $this->oracle_config['use_host'] = $USE_HOST;
+        if (defined("SQLT_BOL")) {
+            $this->types[] = SQLT_BOL;
+            $this->types[] = OCI_B_BOL;
+        }
+        $this->client_version = oci_client_version();
 
         if (!$no_connect) $this->getOracle();
     }
@@ -179,6 +203,7 @@ class Oracle extends AbstractDB {
         }
         elseif (isset($this->error_code['getOracle']) && $this->error_code['getOracle']) unset($this->error_code['getOracle']);
         $this->status = true;
+        $this->server_version = oci_server_version($this->oracle);
         return true;
     }
 
@@ -260,8 +285,8 @@ class Oracle extends AbstractDB {
      * @return array|false
      */
     public function query ($sql) {
-        $types = array(SQLT_BFILEE, OCI_B_BFILE, SQLT_CFILEE, OCI_B_CFILEE, SQLT_CLOB, OCI_B_CLOB, SQLT_BLOB, OCI_B_BLOB, SQLT_RDD, OCI_B_ROWID, SQLT_NTY, OCI_B_NTY, SQLT_INT, OCI_B_INT, SQLT_CHR, SQLT_BIN, OCI_B_BIN, SQLT_LNG, SQLT_LBI, SQLT_RSET); //, SQLT_BOL, OCI_B_BOL);
         if (!$this->status) return false;
+        if ($this->debug) $this->logs[] = "SQL = ". $sql;
         $this->error = false;
         $stat = oci_parse($this->oracle, $sql);
         $replace = array();
@@ -270,25 +295,35 @@ class Oracle extends AbstractDB {
                 $n = strtr($key, array(':'=>''));
                 $max_length = 4096;
                 $type =  SQLT_CHR;
+                $no_replace = false;
                 if (is_array($val)) {
                     if (isset($val['length'])) $max_length = $val['length']*1;
-                    if (isset($val['type']) && in_array($type, $types)) $type = $val['type'];
+                    if (isset($val['type']) && in_array($type, $this->types)) $type = $val['type'];
                     if (!isset($val['value'])) $val['value'] = '';
-                    $$n = $val['value'];
+                    if (in_array($type, array(SQLT_BFILEE, OCI_B_BFILE, SQLT_CFILEE, OCI_B_CFILEE, SQLT_CLOB, OCI_B_CLOB, SQLT_BLOB, OCI_B_BLOB, SQLT_RDD, OCI_B_ROWID))) {
+                        if (in_array($type, array(SQLT_BFILEE, OCI_B_BFILE, SQLT_CFILEE, OCI_B_CFILEE))) $$n = oci_new_descriptor($this->oracle, OCI_D_FILE);
+                        elseif (in_array($type, array(SQLT_CLOB, OCI_B_CLOB, SQLT_BLOB, OCI_B_BLOB))) $$n = oci_new_descriptor($this->oracle, OCI_D_LOB);
+                        else $$n = oci_new_descriptor($this->oracle, OCI_D_ROWID);
+                        $no_replace = true;
+                        $max_length = -1;
+                    }
+                    else $$n = $val['value'];
                 }
                 else $$n = $val;
-                $replace[$key] = $$n;
+                if ($no_replace) {
+                    $replace[$key] = '';
+                    if ($this->debug) $this->logs[] = "Bind: key = ". $key .", value = 'LOB', length = ". $max_length .", type = ". $type;
+                }
+                else {
+                    $replace[$key] = $$n;
+                    if ($this->debug) $this->logs[] = "Bind: key = ". $key .", value = ". $$n .", length = ". $max_length .", type = ". $type;
+                }
                 oci_bind_by_name($stat, $key, $$n, $max_length, $type);
             }
         }
         $curs = false;
         if ($this->cursor) $curs = oci_new_cursor($this->oracle);
-        //$curs = 0;
-        if (!isset($this->sql_param[':res']) && preg_match("/:res\s?(\W)/", $sql)) {
-            //oci_bind_by_name($stat, ":res", $curs, -1, OCI_B_CURSOR);
-            oci_bind_by_name($stat, ":res", $curs, -1, SQLT_RSET);
-            //oci_bind_by_name($stat, ":res", $curs, 4096);
-        }
+        if (!isset($this->sql_param[':res']) && preg_match("/:res\s?(\W)/", $sql)) oci_bind_by_name($stat, ":res", $curs, -1, SQLT_RSET);
         if ($stat) {
             if ($this->cursor && $curs) {
                 $run_time = time();

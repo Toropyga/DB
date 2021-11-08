@@ -4,7 +4,7 @@
  * Класс для работы с БД Oracle
  * @author FYN
  * Date: 12/03/2009
- * @version 3.1.3
+ * @version 3.1.4
  * @copyright 2009-2021
  */
 
@@ -329,7 +329,28 @@ class Oracle extends AbstractDB {
                 $run_time = time();
                 if (@oci_execute($stat) && @oci_execute($curs)) {
                     $res = array();
-                    while ($data = @oci_fetch_array($curs, OCI_ASSOC + OCI_RETURN_NULLS)) $res[] = $data;
+                    while ($data = @oci_fetch_array($curs, OCI_ASSOC + OCI_RETURN_NULLS)) {
+                        if (is_array($data)) {
+                            foreach ($data as $key=>$row) {
+                                if (is_object($row)) {
+                                    $data_lob = $row->load();
+                                    $row->free();
+                                    if ($data_lob) {
+                                        if (!isset($data['ORACLE_CLASS_READ_LOB'])) $data['ORACLE_CLASS_READ_LOB'] = $data_lob;
+                                        else $data['ORACLE_CLASS_READ_LOB_FYN_DB'] = $data_lob;
+                                    }
+                                }
+                            }
+                            $res[] = $data;
+                        }
+                        elseif (is_object($data)) { // protect against a NULL LOB
+                            $data_lob = $data->load();
+                            $data->free();
+                            if ($data_lob) $res[] = $data_lob;
+                            else $res[] = $data;
+                        }
+                        else $res[] = $data;
+                    }
                     @oci_free_statement($curs);
                     @oci_free_statement($stat);
                     if (isset($this->error_code['query']) && $this->error_code['query']) unset($this->error_code['query']);

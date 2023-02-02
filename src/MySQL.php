@@ -173,11 +173,11 @@ class MySQL extends AbstractDB {
         $code = 'getConnect';
         if ($this->use_transaction) {
             if ($this->db_port) {
-                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port", $code);
+                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port.\n Info: ".mysqli_connect_error(), $code);
                 elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
             }
             else {
-                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port", $code);
+                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port.\n Info: ".mysqli_connect_error(), $code);
                 elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
             }
             @mysqli_autocommit($this->db_connect, TRUE);
@@ -185,7 +185,7 @@ class MySQL extends AbstractDB {
         else {
             if ($this->db_port) $host = $this->db_host.':'.$this->db_port;
             else $host = $this->db_host;
-            if (!$this->db_connect = @mysqli_connect($host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port", $code);
+            if (!$this->db_connect = @mysqli_connect($host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port.\n Info: ".mysqli_connect_error(), $code);
             elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
         }
         if ($this->log_all) $this->logs[] = "Connect to MySQL Host: ".$this->db_host.", User: ". $this->db_user.", DB: ".$this->db_name." - success";

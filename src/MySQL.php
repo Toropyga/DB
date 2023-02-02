@@ -4,8 +4,8 @@
  * Класс для работы с БД MySQL
  * @author FYN
  * Date: 15/04/2005
- * @version 5.0.3
- * @copyright 2005-2021
+ * @version 5.0.4
+ * @copyright 2005-2023
  */
 
 namespace FYN\DB;

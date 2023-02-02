@@ -3,8 +3,8 @@
  * DB.
  * @author FYN
  * Date: 09.08.2021
- * @version 1.1.5
- * @copyright 2021
+ * @version 1.1.6
+ * @copyright 2021-2023
  */
 
 namespace FYN\DB;

@@ -4,7 +4,7 @@
  * Класс для работы с БД MySQL
  * @author FYN
  * Date: 15/04/2005
- * @version 5.0.4
+ * @version 5.0.5
  * @copyright 2005-2023
  */
 
@@ -247,10 +247,10 @@ class MySQL extends AbstractDB {
     private function res2array ($res, $one = 0) { // Get query results to array
         $result = array();
         if (is_array($res)) return $res;
-        if (is_resource($res) || $this->use_transaction) {
+        if (is_resource($res) || is_object($res) || $this->use_transaction) {
             if ($this->use_transaction && !mysqli_num_rows ($res)) return $result;
             elseif (!$this->use_transaction && !mysqli_num_rows ($res)) return $result;
-            while ($row=mysqli_fetch_assoc ($res)) {
+            while ($row = mysqli_fetch_assoc ($res)) {
                 if ($one && sizeof($row) == 1) {
                     foreach ($row as $key=>$value) {
                         if ($one == 3) $result[$key][] = $value;

@@ -145,6 +145,7 @@ $ORACLE = new FYN\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CON
  *      2 - используется полная запись для подключения
  */
 $PDO = new FYN\DB\PDO_LIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $oracle_connect_type);
+```
 ---
 ### Получение списка таблиц
 ```php

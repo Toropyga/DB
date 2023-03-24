@@ -126,8 +126,8 @@ $MYSQL = new FYN\DB\MySQL($HOST, $PORT, $NAME, $USER, $PASS);
  * @param int $USE_HOST - какая строка подклюения используется (принимает значение 0, 1 или 2) оптимально 2
  * @param string $PORT - порт
  * @param bool $P_CONNECT - использовать ли постоянное подключение
- * @param string $CHARSET - кодировка
- * @param bool $no_connect - не подключаться к БД при инициации класса
+ * @param string $CHARSET - кодировка (по умолчанию - не указана)
+ * @param bool $no_connect - не подключаться к БД при инициации класса (по умолчанию - false)
  */
 $ORACLE = new FYN\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CONNECT, $CHARSET, $no_connect);
 

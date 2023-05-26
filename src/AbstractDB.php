@@ -115,11 +115,11 @@ class AbstractDB {
     /**
      * Обработка ошибок.
      * Вывод на экран, сохранение в переменную error.
-     * @param bool $message - сообщение об ошибке
+     * @param string $message - сообщение об ошибке
      * @param string $lib_name - имя библиотеки
      * @return bool
      */
-    protected function Error ($message=false, $lib_name = 'AbstractDB') {
+    protected function Error ($message='', $lib_name = 'AbstractDB') {
         $this->error = true;
         $ip = $this->getIP();
         if (!defined("WWW_PATH")) define("WWW_PATH", $_SERVER['SERVER_NAME']);

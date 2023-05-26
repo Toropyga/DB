@@ -4,7 +4,7 @@
  * Класс для работы с БД MySQL
  * @author FYN
  * Date: 15/04/2005
- * @version 5.0.5
+ * @version 5.1.0
  * @copyright 2005-2023
  */
 
@@ -499,22 +499,58 @@ class MySQL extends AbstractDB {
     /**
      * Возвращает ID последней добавленной записи в таблицу
      * @param string $table - имя таблицы, если не указано, то возвращает последний ID во всей БД
+     * @param array $index - массив данных условия WHERE в формате array(['имя_поля'] => 'значение');
      * @return mixed
      */
-    public function lastID ($table = '') {
-        if (!$table) return$this->getResults("SELECT LAST_INSERT_ID()", 1);
-        else $res = $this->getResults("SELECT LAST_INSERT_ID() FROM $table", 1);
+    public function lastID ($table = '', $index = array()) {
+        $code = 'lastID';
+        if (!$table) {
+            if (!$res = mysqli_insert_id($this->db_connect)) $res = $this->getResults("SELECT LAST_INSERT_ID() LIMIT 0,1", 1);
+        }
+        else {
+            $ind = '';
+            if (sizeof($index)) {
+                if (!$tab_fields = $this->getListFields($table)) return FALSE;
+                if (!is_array($index)) {
+                    $this->DB_Error("Could not create SELECT LAST ID query: Error keys - $index (not array)", $code);
+                    return FALSE;
+                }
+                elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+                foreach ($index as $key => $value) {
+                    if (in_array($key,$tab_fields)) {
+                        if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
+                        elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
+                        else $ind = ($ind)?"$ind AND `$key` = '$value'":"`$key` = '$value'";
+                    }
+                }
+                if ($ind) $ind = "WHERE $ind";
+                $ind_full = $this->getResults("SHOW KEYS FROM $table");
+                $in = array();
+                foreach ($ind_full as $row) {
+                    $in[] = $row['Column_name'];
+                }
+                if (sizeof($in) > 1) {
+                    $str = implode(',', $in);
+                    $res_str = $this->getResults("SELECT MAX(concat_ws(',', $str)) FROM $table $ind LIMIT 0,1", 1);
+                    $in_spl = explode(',', $res_str);
+                    $res = array();
+                    foreach ($in as $k=>$v) $res[$v] = $in_spl[$k];
+                }
+                else $res = $this->getResults("SELECT $in[0] FROM $table $ind LIMIT 0,1", 1);
+            }
+            else $res = $this->getResults("SELECT LAST_INSERT_ID() FROM $table LIMIT 0,1", 1);
+        }
         return $res;
     }
 
     /**
      * Обработка ошибок.
      * Вывод на экран, сохранение в переменную error.
-     * @param bool $message - сообщение об ошибке
+     * @param string $message - сообщение об ошибке
      * @param string $code - код ошибки
      * @return bool
      */
-    private function DB_Error ($message=false, $code = '') {
+    private function DB_Error ($message='', $code = '') {
 
         if ($code && isset($this->error_code[$code])) return false;
         elseif ($code) $this->error_code[$code] = true;

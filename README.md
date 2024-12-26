@@ -18,7 +18,7 @@ Database classes
     - [Including a class file](#Including-a-class-file)
     - [Classes initialisation](#Classes-initialisation)
     - [Getting a list of tables](#Getting-a-list-of-tables)
-    - [Creating INSERT, DELETE and UPDATE queries from arrays](#Creating-INSERT,-DELETE-and-UPDATE-queries-from-arrays)
+    - [Creating INSERT, DELETE and UPDATE queries from arrays](#Creating-INSERT-DELETE-and-UPDATE-queries-from-arrays)
     - [Sending a request](#Sending-a-request)
 
 ## General description

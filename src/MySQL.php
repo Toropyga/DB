@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Класс для работы с БД MySQL
+ * Class for working with MySQL database
  * @author FYN
  * Date: 15/04/2005
- * @version 5.1.0
- * @copyright 2005-2023
+ * @version 5.1.1
+ * @copyright 2005-2024
  */
 
 namespace FYN\DB;
@@ -15,74 +15,74 @@ use mysqli_result;
 class MySQL extends AbstractDB {
 
     /**
-     * Имя/адрес сервера БД
+     * Host name or address
      * @var string
      */
     private $db_host; //Host name
     /**
-     * Порт сервера
+     * Port
      * @var integer
      */
     private $db_port; //Port number
     /**
-     * Имя базы данных
+     * DB name
      * @var string
      */
     private $db_name; //Database name
     /**
-     * Имя пользователя
+     * User name
      * @var string
      */
     private $db_user; //User name
     /**
-     * Пароль пользователя
+     * User password
      * @var string
      */
     private $db_pass; //User password
     /**
-     * Записывать в лог все действия (true) или только ошибки (false)
+     * Log all actions (true) or only errors (false)
      * @var bool
      */
     private $log_all = true;
     /**
-     * Подключение к БД
+     * DB connect
      * @var object
      */
     private $db_connect = [];
     /**
-     * Статус подключения к БД
+     * Connect status
      * @var bool
      */
     public $status = false;
     /**
-     * Сохранять подключение на весь сеанс или подключаться при каждом SQL-запросе
+     * Maintain connection for entire session or connect on every SQL query
      * @var bool
      */
     private $db_storage = true;
     /**
-     * Список полей в таблицах БД
+     * List of filds in tables
      * @var array
      */
     private $db_TableList = array();
     /**
-     * Список таблиц в БД
+     * List of tables in DB
      * @var array
      */
     private $db_Tables = array();
     /**
-     * Использовать ли постоянное подключение
+     * Use transaction
      * @var bool
      */
     private $use_transaction = true;
 
     /**
      * DBMySQL constructor.
-     * Класс для работы с БД MySQL
-     * @param mixed $HOST - хост
-     * @param mixed $PORT - порт
-     * @param mixed $NAME - имя БД
-     * @param mixed $USER - пользователь
-     * @param mixed $PASS - пароль
+     * Class for working with MySQL database
+     * @param mixed $HOST - host
+     * @param mixed $PORT - port
+     * @param mixed $NAME - DB namee
+     * @param mixed $USER - user name
+     * @param mixed $PASS - user password
      */
     public function __construct ($HOST = false, $PORT = false, $NAME = false, $USER = false, $PASS = false) {
         if (defined('DB_MYSQL_HOST') && !$HOST) $this->db_host = DB_MYSQL_HOST; elseif ($HOST) $this->db_host = $HOST;
@@ -106,7 +106,7 @@ class MySQL extends AbstractDB {
 
 
     /**
-     * Деструктор класса.
+     * Class destructor.
      */
     public function __destruct() {
         $this->getClose();
@@ -114,29 +114,30 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Основная функция для запросов на выборку
+     * Basic function for select queries
      * Set SQL query to DataBase and return query Result
      *
      * @param string $sql - SQL query to DataBase
      * @param int|string $one - return result parameter
-     * Принимает значения:
-     *  числовые:
-     *      0 или '' - (выборка: любое количество строк и столбцов) ожидаем массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      1 - (выборка: одна строка / один столбец) ожидаем строку, если при выборке получилось более одного столбца - возвращает ассоциативный массив (имя_поля => значение), если более одной строки - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      2 - (выборка: одна строка / множество столбцов) ожидаем ассоциативный массив (имя_поля => значение), если более одной строки и один столбец - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      3 - (выборка: множество строк / один столбец) ожидаем ассоциативный массив массивов (имя_поля => array([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      4 - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
-     *      5 - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
-     *      7 - возврат данных по выполнению запроса (EXPLAIN)
-     *  строковые (аналог числовых):
-     *      'all' или '' - (выборка: любое количество строк и столбцов) ожидаем массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'one' - (выборка: одна строка / один столбец) ожидаем строку, если при выборке получилось более одного столбца - возвращает ассоциативный массив (имя_поля => значение), если более одной строки - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'row' - (выборка: одна строка / множество столбцов) ожидаем ассоциативный массив (имя_поля => значение), если более одной строки и один столбец - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'column' - (выборка: множество строк / один столбец) ожидаем ассоциативный массив массивов (имя_поля => array([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'col' - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
-     *      'dub' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
-     *      'explain' - возврат данных по выполнению запроса (EXPLAIN)
-     *
+     * Can take values:
+     *  Numeric:
+     *      0 or '' - (selection: any number of rows and columns) expect an array of associative arrays ([] => array(field_name => value));
+     *      1 - (selection: one row / one column) expect a row, if the selection yielded more than one column - returns an associative array (field_name => value), if more than one row - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      2 - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more thgan one column - an array of associative arrays ([] => array(field_name => value));
+     *      3 - (selection: multiple rows / one column) expect an associative array of arrays (field_name => array([] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      4 - (selection: multiple rows / one column) expect an array of values ​[] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value)).
+     *      5 - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
+     *      6 - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2), if [value of field 1] is repeated, the array becomes [value of field 1] => array([0] => value of field 2, [1] => field value 2...)
+     *      7 - return data on query execution EXPLAIN
+     *  String (analogous to numeric):
+     *      'all' or '' - (selection: any number of rows and columns) expect an array of associative arrays ([] => array(field_name => value));
+     *      'one' - (selection: one row / one column) expect a row, if the selection yielded more than one column - returns an associative array (field_name => value), if more than one row - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      'row' - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more thgan one column - an array of associative arrays ([] => array(field_name => value));
+     *      'column' - (selection: multiple rows / one column) expect an associative array of arrays (field_name => array([] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      'col' - (selection: multiple rows / one column) expect an array of values ​[] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value)).
+     *      'dub' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
+     *      'dub_all' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2), if [value of field 1] is repeated, the array becomes [value of field 1] => array([0] => value of field 2, [1] => field value 2...)
+     *      'explain' - return data on query execution EXPLAIN
      * @return array|bool|mysqli_result|string|string[]|null SQL query result
      */
     public function getResults ($sql, $one=0) { // Set query results
@@ -166,7 +167,7 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Подключение к БД MySQL
+     * DB MySQL connect
      * @return bool
      */
     private function getConnect () { // Connect to database
@@ -196,7 +197,7 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Закрытие подключения к MySQL
+     * Close connect
      * @return bool
      */
     public function getClose () {
@@ -213,9 +214,9 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Выполнение запроса к БД
-     * @param string $sql - SQL запрос
-     * @param integer $other_function - выполнение запроса из другой функции (не прямой запрос, закрываем соединение)
+     * Run SQL query
+     * @param string $sql - SQL query
+     * @param integer $other_function - execute a request from another function (not a direct request, close the connection)
      * @return bool|mysqli_result
      */
     public function query ($sql, $other_function = 0) { // SQL query
@@ -239,9 +240,9 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Обработка результата и формирование массива полученных данных
-     * @param $res - объект с результатами
-     * @param int $one - параметр обработки (см. getResults)
+     * Processing the result and forming an array of received data
+     * @param $res - data object
+     * @param int $one - processing parameter (see getResults)
      * @return array
      */
     private function res2array ($res, $one = 0) { // Get query results to array
@@ -276,7 +277,7 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Выбор указанной базы данных
+     * Database select
      * @return bool
      */
     private function getDB () { // Select DB
@@ -293,8 +294,8 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Установка кодировки для базы данных
-     * @param string $charset - используемая кодировка
+     * Set charset
+     * @param string $charset - charset
      */
     public function setCharset ($charset = 'utf8') {
         $mysql_ver = @mysqli_get_server_info($this->db_connect);
@@ -315,7 +316,7 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Получение списка таблиц в БД
+     * Getting a list of tables
      * @return array
      */
     public function getTableList () {
@@ -325,8 +326,8 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Получение списка существующих полей в таблице
-     * @param $table - имя таблицы
+     * Getting a list of fields in table
+     * @param $table - table name
      * @return array|mixed
      */
     public function getListFields($table) { // Get Fields from table
@@ -352,9 +353,9 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Создание одиночного Insert запроса
-     * @param string $table - имя таблицы
-     * @param array $values - массив данных для добавления в формате array(['имя_поля'] => 'значение');
+     * Creating a Single Insert Query
+     * @param string $table - table name
+     * @param array $values - array of data to add in the format array(['field_name'] => 'value');
      * @return string
      */
     public function getInsertSQL ($table, $values) { // Create Insert query
@@ -382,10 +383,10 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Создание Update запроса
-     * @param string $table - имя таблицы
-     * @param array $values - массив данных для обновления в формате array(['имя_поля'] => 'значение');
-     * @param mixed $index - массив данных условия WHERE в формате array(['имя_поля'] => 'значение');
+     * Creating an Update query
+     * @param string $table - table name
+     * @param array $values - array of data for update in the format array(['field_name'] => 'value');
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return string
      */
     public function getUpdateSQL ($table, $values, $index=false) { // Create Update query
@@ -427,9 +428,9 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Создание Delete запроса
-     * @param string $table - имя таблицы
-     * @param mixed $index - массив данных условия WHERE в формате array(['имя_поля'] => 'значение');
+     * Creating a Delete query
+     * @param string $table - table name
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return string
      */
     public function getDeleteSQL ($table, $index=false) { // Create Delete query
@@ -457,9 +458,9 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Выполнение SQL запросов из файла
+     * Executing SQL queries from a file
      *
-     * @param string $SQLFile - путь и имя вызываемого файла
+     * @param string $SQLFile - path and name of file
      * @return bool
      */
     public function getQueryFile ($SQLFile = "db.sql") {
@@ -497,9 +498,9 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Возвращает ID последней добавленной записи в таблицу
-     * @param string $table - имя таблицы, если не указано, то возвращает последний ID во всей БД
-     * @param array $index - массив данных условия WHERE в формате array(['имя_поля'] => 'значение');
+     * Returns the ID of the last record added to the table.
+     * @param string $table - table name, if not specified, returns the last ID in the entire database
+     * @param array $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return mixed
      */
     public function lastID ($table = '', $index = array()) {
@@ -544,10 +545,10 @@ class MySQL extends AbstractDB {
     }
 
     /**
-     * Обработка ошибок.
-     * Вывод на экран, сохранение в переменную error.
-     * @param string $message - сообщение об ошибке
-     * @param string $code - код ошибки
+     * Error handling.
+     * Output to screen, save to error variable.
+     * @param string $message - error message
+     * @param string $code - error code
      * @return bool
      */
     private function DB_Error ($message='', $code = '') {

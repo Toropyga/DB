@@ -1,28 +1,28 @@
 <?php
 
 /**
- * Класс для работы с БД Oracle
+ * Class for working with Oracle database
  * @author FYN
  * Date: 12/03/2009
- * @version 3.1.4
- * @copyright 2009-2021
+ * @version 3.1.5
+ * @copyright 2009-2024
  */
 
 namespace FYN\DB;
 
 class Oracle extends AbstractDB {
     /**
-     * Подключение к Oracle
+     * DB Oracle connection
      * @var mixed
      */
     private $oracle;
     /**
-     * Список существующих таблиц в БД Oracle и их полей
+     * List of existing tables in Oracle DB and their fields
      * @var array
      */
     private $db_TableListOracle = array();
     /**
-     * Конфигурация подключения к Oracle
+     * DB Oracle connection configuration
      * @var array
      */
     private $oracle_config = array(
@@ -36,71 +36,71 @@ class Oracle extends AbstractDB {
         'use_host'  => 2
     );
     /**
-     * Записывать в лог все действия (true) или только ошибки (false)
+     * Log all actions (true) or only errors (false)
      * @var bool
      */
     private $log_all = true;
     /**
-     * Текст ошибки в логе
+     * Error message
      * @var string
      */
     private $error_text = '';
     /**
-     * Статус подключения к БД
+     * Connection status
      * @var bool
      */
     public $status = false;
     /**
-     * Запросы выполняются к пакету
+     * Requests are made to the package (true)
      * @var bool
      */
     private $package = true;
     /**
-     * Выполнять запрос и ждать возврата курсора
+     * Execute the query and wait for the cursor to return (true)
      * @var bool
      */
     private $cursor = true;
     /**
-     * массив переменных запроса
+     * array of query variables
      * @var array
      */
     private $sql_param = array();
     /**
-     * Результат
+     * Result
      * @var array
      */
     private $stat = array();
 
     /**
-     * Версия клиента
+     * Client version
      * @var string
      */
     public $client_version = '';
 
     /**
-     * Версия сервера
+     * Server version
      * @var string
      */
     public $server_version = '';
 
     /**
-     * Типы полей в БД.
-     * Используются при задании типа данных переменной в запросе.
+     * Field types in the database.
+     * Used when specifying the data type of a variable in a query.
      * @var array
      */
     private $types = array(SQLT_BFILEE, OCI_B_BFILE, SQLT_CFILEE, OCI_B_CFILEE, SQLT_CLOB, OCI_B_CLOB, SQLT_BLOB, OCI_B_BLOB, SQLT_RDD, OCI_B_ROWID, SQLT_NTY, OCI_B_NTY, SQLT_INT, OCI_B_INT, SQLT_CHR, SQLT_BIN, OCI_B_BIN, SQLT_LNG, SQLT_LBI, SQLT_RSET);
 
     /**
      * DBOracle constructor.
-     * @param string $HOST - сервер
-     * @param string $NAME - имя базы данных
-     * @param string $USER - пользователь
-     * @param string $PASS - пароль
-     * @param int $USE_HOST - какая строка подклюения используется (принимает значение 0, 1 или 2) оптимально 2
-     * @param string $PORT - порт
-     * @param bool $P_CONNECT - использовать ли постоянное подключение
-     * @param string $CHARSET - кодировка
-     * @param bool $no_connect - не подключаться к БД при инициации класса
+     * @param string $HOST - host
+     * @param string $NAME - DB name
+     * @param string $USER - user name
+     * @param string $PASS - user password
+     * @param int $USE_HOST - the type of record used to connect to Oracle (takes a value of 0, 1 or 2), optimally 2
+     * @param string $PORT - port
+     * @param bool $P_CONNECT - maintain connection for entire session or connect on every SQL query
+     * @param string $CHARSET - charset
+     * @param bool $no_connect - don't connect to DB when class is initiated
      */
     public function __construct ($HOST=NULL, $NAME=NULL, $USER=NULL, $PASS=NULL, $USE_HOST=NULL, $PORT=NULL, $P_CONNECT=NULL, $CHARSET = '', $no_connect = false) {
         if (defined('DB_ORACLE_HOST') && !$HOST) $this->oracle_config['host'] = DB_ORACLE_HOST; elseif ($HOST) $this->oracle_config['host'] = $HOST;
@@ -129,32 +129,33 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Запись в лог
-     * Деструктор класса.
+     * Write to log
+     * Class destructor.
      */
     public function __destruct() {
         $this->status = false;
     }
 
     /**
-     * Отправка SQL-запроса к БД Oracle и возврат результата запроса
+     * Sending a SQL query to an Oracle database and returning the query result
      *
-     * @param string $sql - SQL-запрос
-     * @param int $one - параметр ответа
-     * Принимает значения:
-     *      0 или '' - (выборка: любое количество строк и столбцов) ожидаем массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      1 - (выборка: одна строка / один столбец) ожидаем строку, если при выборке получилось более одного столбца - возвращает ассоциативный массив (имя_поля => значение), если более одной строки - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      2 - (выборка: одна строка / множество столбцов) ожидаем ассоциативный массив (имя_поля => значение), если более одной строки и один столбец - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      3 - (выборка: множество строк / один столбец) ожидаем ассоциативный массив массивов (имя_поля => array([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      4 - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
-     *      5 - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
-     *  строковые (аналог числовых):
-     *      'all' или '' - (выборка: любое количество строк и столбцов) ожидаем массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'one' - (выборка: одна строка / один столбец) ожидаем строку, если при выборке получилось более одного столбца - возвращает ассоциативный массив (имя_поля => значение), если более одной строки - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'row' - (выборка: одна строка / множество столбцов) ожидаем ассоциативный массив (имя_поля => значение), если более одной строки и один столбец - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'column' - (выборка: множество строк / один столбец) ожидаем ассоциативный массив массивов (имя_поля => array([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'col' - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
-     *      'dub' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
+     * @param string $sql - SQL query
+     * @param int $one - return result parameter
+     * Can take values:
+     *  Numeric:
+     *      0 or '' - (selection: any number of rows and columns) expect an array of associative arrays ([] => array(field_name => value));
+     *      1 - (selection: one row / one column) expect a row, if the selection yielded more than one column - returns an associative array (field_name => value), if more than one row - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      2 - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more thgan one column - an array of associative arrays ([] => array(field_name => value));
+     *      3 - (selection: multiple rows / one column) expect an associative array of arrays (field_name => array([] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      4 - (selection: multiple rows / one column) expect an array of values ​[] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value)).
+     *      5 - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
+     *  String (analogous to numeric):
+     *      'all' or '' - (selection: any number of rows and columns) expect an array of associative arrays ([] => array(field_name => value));
+     *      'one' - (selection: one row / one column) expect a row, if the selection yielded more than one column - returns an associative array (field_name => value), if more than one row - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      'row' - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more thgan one column - an array of associative arrays ([] => array(field_name => value));
+     *      'column' - (selection: multiple rows / one column) expect an associative array of arrays (field_name => array([] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      'col' - (selection: multiple rows / one column) expect an array of values ​[] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value)).
+     *      'dub' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
      * @return mixed SQL query result
      */
     public function getResults ($sql, $one=0) {
@@ -183,7 +184,7 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Подключение к БД Oracle
+     * DB Oracle connection
      * @return bool
      */
     public function getOracle () {
@@ -208,10 +209,10 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Формирование запроса к пакету Oracle с возвратом в переменную перед запросом
-     * @param $package - имя пакета
-     * @param $procedure - имя процедуры
-     * @param string $query_args - строка аргументов, через запятую
+     * Forming a query to an Oracle package with a return to a variable before the query
+     * @param $package - package name
+     * @param $procedure - procedure name
+     * @param string $query_args - string of arguments, separated by commas
      * @return string
      */
     public function getPackageQuery($package, $procedure, $query_args = '') {
@@ -220,10 +221,10 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Формирование запроса к пакету Oracle с возвратом в переменную в запросе
-     * @param $package
-     * @param $procedure
-     * @param string $query_args
+     * Forming a query to an Oracle package with a return to a variable in the query
+     * @param $package - package name
+     * @param $procedure - procedure name
+     * @param string $query_args - string of arguments, separated by commas
      * @return string
      */
     public function getProcedureQuery($package, $procedure, $query_args = '') {
@@ -232,30 +233,30 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Установка переменных.
-     * На вход принимается массив двух видов:
+     * Setting variables.
+     * The input accepts an array of two types:
      *      1. array(':key' => 'value'),
-     *          где ':key' - имя переменной, 'value' - значение
+     *          where ':key' - variable name, 'value' - value
      *      2. array(':key' => array('length' => '12345', 'type' => OCI_B_INT, 'value' => '555555')),
-     *          где ':key' - имя переменной,
-     *              внутренний массив содержит поля:
-     *                  'length' - максимальный размер данных (-1 - текущий размер значения),
-     *                  'type' - тип данных, к которому Oracle будет приводить значения (см. ниже),
-     *                  'value' - значение
-     * Допустимые значения типов (https://www.php.net/manual/ru/function.oci-bind-by-name.php):
-     *    SQLT_BFILEE или OCI_B_BFILE - для BFILE-объектов;
-     *    SQLT_CFILEE или OCI_B_CFILEE - для CFILE-объектов;
-     *    SQLT_CLOB или OCI_B_CLOB - для CLOB-объектов;
-     *    SQLT_BLOB или OCI_B_BLOB - для BLOB-объектов;
-     *    SQLT_RDD или OCI_B_ROWID - для ROWID-объектов;
-     *    SQLT_NTY или OCI_B_NTY - для именованных типов даты;
-     *    SQLT_INT или OCI_B_INT - для целых чисел;
-     *    SQLT_CHR - для символов VARCHAR;
-     *    SQLT_BIN или OCI_B_BIN - для RAW-полей;
-     *    SQLT_LNG - для LONG-полей;
-     *    SQLT_LBI - для LONG RAW полей;
-     *    SQLT_RSET - для курсоров, созданных функцией oci_new_cursor();
-     *    // SQLT_BOL или OCI_B_BOL - для PL/SQL BOOLEAN
+     *          where ':key' - variable name,
+     *              the internal array contains fields:
+     *                  'length' - maximum data size (-1 - current data size),
+     *                  'type' - the data type that Oracle will cast values ​​to (see below),
+     *                  'value' - value
+     * Valid values ​​of types (https://www.php.net/manual/ru/function.oci-bind-by-name.php):
+     *    SQLT_BFILEE or OCI_B_BFILE - for BFILE-objects;
+     *    SQLT_CFILEE or OCI_B_CFILEE - for CFILE-objects;
+     *    SQLT_CLOB or OCI_B_CLOB - for CLOB-objects;
+     *    SQLT_BLOB or OCI_B_BLOB - for BLOB-objects;
+     *    SQLT_RDD or OCI_B_ROWID - for ROWID-objects;
+     *    SQLT_NTY or OCI_B_NTY - for named date types;
+     *    SQLT_INT or OCI_B_INT - for integers;
+     *    SQLT_CHR - for VARCHAR symbols;
+     *    SQLT_BIN or OCI_B_BIN - for RAW-fields;
+     *    SQLT_LNG - for LONG-fields;
+     *    SQLT_LBI - for LONG RAW fields;
+     *    SQLT_RSET - for cursors created by the oci_new_cursor() function;
+     *    // SQLT_BOL or OCI_B_BOL - for PL/SQL BOOLEAN
      * @param array $bind
      */
     public function setBind ($bind = array()) {
@@ -263,8 +264,8 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Установка параметра запросов
-     * @param bool $package - параметр запросов true - запрос к пакету, false - прямой запрос
+     * Setting the query parameter
+     * @param bool $package - true - packet request, false - direct request
      */
     public function setPackage ($package = true) {
         if ($package) $this->package = true;
@@ -272,16 +273,16 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Установить параметр работы с запросами
-     * @param bool $cursor - true - запросы возвращают курсор, false - простой запрос без курсора
+     * Set the parameter to work with the request
+     * @param bool $cursor - true - return cursor, false - without cursor
      */
     public function setCursor ($cursor = true) {
         $this->cursor = $cursor;
     }
 
     /**
-     * Выполнение запроса к БД Oracle
-     * @param $sql - запрос
+     * Executing a query to Oracle DB
+     * @param $sql - query
      * @return array|false
      */
     public function query ($sql) {
@@ -424,9 +425,9 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Вспомогательная функция для обработки результата запроса к БД Oracle
-     * @param $res - объект, возвращаемый функцией mysqli_query
-     * @param int $one - тип обработки (см. функцию getResults)
+     * Helper function for processing the result of a query to the Oracle database
+     * @param $res - object with query result
+     * @param int $one - processing type (see getResults function)
      * @return array
      */
     private function res2array ($res, $one) {
@@ -470,7 +471,7 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Отключение от БД Oracle
+     * Connection close
      * @return void
      */
     private function closeOracle () {
@@ -479,9 +480,9 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Получение списка полей таблицы в Oracle
-     * @param string $table - имя таблицы
-     * @param int $all - все таблицы (>0) или только пользовательские (=0)
+     * Getting a list of table fields in Oracle DB
+     * @param string $table - table name
+     * @param int $all - all tables (>0) or only user tables (=0)
      * @return array|mixed
      */
     private function getListFields ($table, $all = 0) { // Get Filds from table
@@ -507,8 +508,8 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Получение списка таблиц в базе данных Oracle
-     * @param int $all - все таблицы (>0) или только пользовательские (=0)
+     * Getting a list of tables in Oracle DB
+     * @param int $all - all tables (>0) or only user tables (=0)
      * @return mixed
      */
     private function getTableList ($all = 0) {
@@ -518,10 +519,10 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Создание Insert запроса к Oracle
+     * Creating an Insert query to Oracle DB
      *
-     * @param string $table - имя таблицы
-     * @param array $values - массив данных для добавления в формате array(['имя_поля'] => 'значение');
+     * @param string $table - table name
+     * @param array $values - array of data to add in the format array(['field_name'] => 'value');
      * @return string
      */
     public function getInsertSQL ($table, $values) { // Create Insert query
@@ -543,11 +544,11 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Создание Update запроса к Oracle
+     * Creating an Update query to Oracle DB
      *
-     * @param string $table - имя таблицы
-     * @param array $values - массив данных для обновления в формате array(['имя_поля'] => 'значение');
-     * @param mixed $index - массив данных условия WHERE в формате array(['имя_поля'] => 'значение');
+     * @param string $table - table name
+     * @param array $values - array of data for update in the format array(['field_name'] => 'value');
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return string
      */
     public function getUpdateSQL ($table, $values, $index=FALSE) { // Create Update query
@@ -582,10 +583,35 @@ class Oracle extends AbstractDB {
     }
 
     /**
-     * Обработка ошибок.
-     * Вывод на экран, отправка на почту администратору, сохранение в переменную error.
-     * @param bool $message - сообщение об ошибке
-     * @param string $code - код ошибки
+     * Creating a Delete query to Oracle DB
+     * @param string $table - table name
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
+     * @return string
+     */
+    public function getDeleteSQL ($table, $index=false) { // Create Delete query
+        if (!$tab_fields = $this->getListFields($table)) return false;
+        $ind = '';
+        if ($index) {
+            if (!is_array($index)) {
+                $this->logs[] = $this->error_text."Could not create update query: Error keys - $index (not array)";
+                return FALSE;
+            }
+            $ind = '';
+            foreach ($index as $key => $value) {
+                if (in_array($key,$tab_fields)) {
+                    $ind = ($ind)?"$ind AND $key = '$value'":"$key = '$value'";
+                }
+            }
+        }
+        if ($ind) $ind = "WHERE $ind";
+        return "DELETE FROM $table $ind";
+    }
+
+    /**
+     * Error handling.
+     * Output to screen, save to error variable.
+     * @param string $message - error message
+     * @param string $code - error code
      * @return bool
      */
     private function DB_Error ($message=false, $code = '') {

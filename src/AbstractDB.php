@@ -16,43 +16,43 @@ class AbstractDB {
      */
     protected $logs = array();
     /**
-     * Имя файла в который сохраняется лог
+     * Log file name
      * @var string
      */
     protected $log_file = 'db.log';
 
     /**
-     * Время выполнения запроса
+     * Query execution time
      * @var int
      */
     public $run_time = 0;
 
     /**
-     * Включить или отключить отладочные функции
+     * Enable or disable debugging features
      * @var bool
      */
     protected $debug = false; //Show error on Site
 
     /**
-     * Завершить ли работу программы при ошибке
+     * Terminate the program if an error occurs
      * @var bool
      */
     protected $error_exit = false; //Exit if script contain error
 
     /**
-     * Признак наличия ошибки
+     * Sign of error
      * @var bool
      */
     public $error = false;
 
     /**
-     * Коды существующих ошибок
+     * Existing error codes
      * @var array
      */
     protected $error_code = array();
 
     /**
-     * Включение параметра вывода ошибок
+     * Enabling the error output option
      * @param bool $debug
      */
     public function setDebug ($debug = true) {
@@ -61,14 +61,14 @@ class AbstractDB {
     }
 
     /**
-     * Возврат параметра вывода ошибок
+     * Returning the error output parameter
      */
     public function getDebug () {
         return $this->debug;
     }
 
     /**
-     * Включение параметра прерывания работы ПО при ошибке
+     * Enabling the option to interrupt software operation on error
      * @param bool $exit
      */
     public function setErrorExit ($exit = true) {
@@ -77,14 +77,14 @@ class AbstractDB {
     }
 
     /**
-     * Возврат параметра прерывания работы ПО при ошибке
+     * Returning the parameter to interrupt the software operation in case of an error
      */
     public function getErrorExit () {
         return $this->error_exit;
     }
 
     /**
-     * Возврат времени выполнения последнего SQL запроса
+     * Return the execution time of the last SQL query
      * @return int
      */
     public function getRunTime () {
@@ -92,8 +92,8 @@ class AbstractDB {
     }
 
     /**
-     * Проверка параметра вывода данных
-     * @param $one - параметр вывода данных
+     * Checking the output parameter
+     * @param $one - output parameter
      * @return false|int
      */
     protected function checkReturnType ($one) {
@@ -113,10 +113,10 @@ class AbstractDB {
     }
 
     /**
-     * Обработка ошибок.
-     * Вывод на экран, сохранение в переменную error.
-     * @param string $message - сообщение об ошибке
-     * @param string $lib_name - имя библиотеки
+     * Error handling.
+     * Output to screen, save to error variable.
+     * @param string $message - error message
+     * @param string $lib_name - class name
      * @return bool
      */
     protected function Error ($message='', $lib_name = 'AbstractDB') {
@@ -147,8 +147,8 @@ class AbstractDB {
     }
 
     /**
-     * Возвращает логи
-     * @param string $type - тип возвращаемых данных: all - всё (по умолчанию), log - массив логов, file - имя файла логов, last - последняя строка логов
+     * Logs return
+     * @param string $type - тType of returned data: all - all (default), log - array of logs, file - name of log file, last - last line of logs
      * @return array|string
      */
     public function getLogs ($type = 'all') {
@@ -161,7 +161,7 @@ class AbstractDB {
     }
 
     /**
-     * Определение IP адреса с которого открывается страница
+     * Determining the IP address from which the page is opened
      * @return array
      */
     private function getIP () {

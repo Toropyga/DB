@@ -1,11 +1,11 @@
 <?php
 /**
- * Класс для работы с БД с использованием библиотеки PDO
- * !!! В процессе разработки !!!
+ * A generic class that uses the PDO library.
+ * !!! In development !!!
  * @author FYN
  * Date: 16/09/2019
- * @version 0.1.4
- * @copyright 2019-2021
+ * @version 0.1.5
+ * @copyright 2019-2024
  */
 
 namespace FYN\DB;
@@ -14,75 +14,75 @@ use PDO, PDOException;
 
 class PDO_LIB extends AbstractDB {
     /**
-     * Тип базы данных к которой подключаемся
+     * The type of database we are connecting to
      * @var string
      */
     private $db_type = 'mysql';
     /**
-     * Массив поддерживаемых типов баз данных
+     * Array of supported database types
      * @var array
      */
     private $db_types = ['mysql', 'pgsql', 'oci', 'odbc']; // todo sqlite,
     /**
-     * Имя/адрес сервера БД
+     * Host name or address
      * @var string
      */
     private $db_host; //Host name
     /**
-     * Порт сервера
+     * Server port
      * @var integer
      */
     private $db_port; //Port number
     /**
-     * Имя базы данных
+     * DB name
      * @var string
      */
     private $db_name; //Database name
     /**
-     * Имя пользователя
+     * User name
      * @var string
      */
     private $db_user; //User name
     /**
-     * Пароль пользователя
+     * User password
      * @var string
      */
     private $db_pass; //User password
     /**
-     * Кодировка базы данных
+     * Database encoding
      * @var string
      */
     private $db_charset = 'utf8';
     /**
-     * Тип используемой записи для подключения к Oracle
-     *      0 - используется только имя базы данных
-     *      1 - используется хост и имя базы данных
-     *      2 - используется полная запись для подключения
+     * The type of record used to connect to Oracle:
+     *      0 - only the DB name is used
+     *      1 - host and DB name is used
+     *      2 - full entry is used for connection
      * @var int
      */
     private $oracle_connect_type = 0;
     /**
-     * Подключение к БД
+     * DB connection
      * @var object
      */
     private $db_connect;
     /**
-     * Список полей в таблицах БД
+     * List of fields in tables
      * @var array
      */
     private $db_TableList = array();
     /**
-     * Список таблиц в БД
+     * List of tables in DB
      * @var array
      */
     private $db_Tables = array();
     /**
-     * Статус подключения к БД
+     * DB connection status
      * @var bool
      */
     public $status = false;
     /**
-     * Служебная переменная для взаимодействия с PDO
+     * Service variable for interaction with PDO
      * @var string
      */
     private $pdo = '';
@@ -103,36 +103,35 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Запись в лог
-     * Деструктор класса.
+     * Write to log.
+     * Class destructor.
      */
     public function __destruct() {
         $this->status = false;
     }
 
     /**
-     * Основная функция для запросов на выборку
+     * Basic function for select queries
      * Set SQL query to DataBase and return query Result
      *
      * @param string $sql - SQL query to DataBase
      * @param int|string $one - return result parameter
-     * Принимает значения:
-     *  числовые:
-     *      0 или '' - (выборка: любое количество строк и столбцов) ожидаем массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      1 - (выборка: одна строка / один столбец) ожидаем строку, если при выборке получилось более одного столбца - возвращает ассоциативный массив (имя_поля => значение), если более одной строки - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      2 - (выборка: одна строка / множество столбцов) ожидаем ассоциативный массив (имя_поля => значение), если более одной строки и один столбец - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      3 - (выборка: множество строк / один столбец) ожидаем ассоциативный массив массивов (имя_поля => array([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      4 - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
-     *      5 - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
-     *      6 - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2), если [значение поля 1] повторяется, то массив принимает вид [значение поля 1] => array([0] => значение поля 2, [1] => значение поля 2...)
-     *  строковые (аналог числовых):
-     *      'all' или '' - (выборка: любое количество строк и столбцов) ожидаем массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'one' - (выборка: одна строка / один столбец) ожидаем строку, если при выборке получилось более одного столбца - возвращает ассоциативный массив (имя_поля => значение), если более одной строки - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'row' - (выборка: одна строка / множество столбцов) ожидаем ассоциативный массив (имя_поля => значение), если более одной строки и один столбец - возвращает массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'column' - (выборка: множество строк / один столбец) ожидаем ассоциативный массив массивов (имя_поля => array([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение));
-     *      'col' - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
-     *      'dub' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
-     *      'dub_all' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2), если [значение поля 1] повторяется, то массив принимает вид [значение поля 1] => array([0] => значение поля 2, [1] => значение поля 2...)
+     * *  Numeric:
+     *      0 or '' - (selection: any number of rows and columns) expect an array of associative arrays ([] => array(field_name => value));
+     *      1 - (selection: one row / one column) expect a row, if the selection yielded more than one column - returns an associative array (field_name => value), if more than one row - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      2 - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more thgan one column - an array of associative arrays ([] => array(field_name => value));
+     *      3 - (selection: multiple rows / one column) expect an associative array of arrays (field_name => array([] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      4 - (selection: multiple rows / one column) expect an array of values ​[] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value)).
+     *      5 - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
+     *      6 - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2), if [value of field 1] is repeated, the array becomes [value of field 1] => array([0] => value of field 2, [1] => field value 2...)
+     *  String (analogous to numeric):
+     *      'all' or '' - (selection: any number of rows and columns) expect an array of associative arrays ([] => array(field_name => value));
+     *      'one' - (selection: one row / one column) expect a row, if the selection yielded more than one column - returns an associative array (field_name => value), if more than one row - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      'row' - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more thgan one column - an array of associative arrays ([] => array(field_name => value));
+     *      'column' - (selection: multiple rows / one column) expect an associative array of arrays (field_name => array([] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
+     *      'col' - (selection: multiple rows / one column) expect an array of values ​[] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value)).
+     *      'dub' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
+     *      'dub_all' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2), if [value of field 1] is repeated, the array becomes [value of field 1] => array([0] => value of field 2, [1] => field value 2...)
      *
      * @return array|bool|string SQL query result
      */
@@ -154,8 +153,8 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Обработка результата и формирование массива полученных данных
-     * @param int $one - параметр обработки (см. getResults)
+     * Processing the result and forming an array of received data
+     * @param int $one - processing parameter (see getResults)
      * @return array
      */
     private function res2array ($one = 0) { // Set query results to array
@@ -193,7 +192,7 @@ class PDO_LIB extends AbstractDB {
             }
         }
         elseif ($col_count == 2 && $one == 6) {
-            //альтернативный вариант обработки данных (выборка: множество строк / 2 столбца) с учётом повторяющихся ключей и значений
+            //alternative data processing option (selection: many rows / 2 columns) taking into account duplicate keys and values
             $keys = array();
             $idx = 0;
             while ($row = $this->fetch(PDO::FETCH_NUM)) {
@@ -225,10 +224,10 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Установка типа используемой записи для подключения к Oracle
-     *      0 - используется только имя базы данных
-     *      1 - используется хост и имя базы данных
-     *      2 - используется полная запись для подключения
+     * Setting the type of record used to connect to Oracle:
+     *      0 - only the DB name is used
+     *      1 - host and DB name is used
+     *      2 - full entry is used for connection
      * @param int $type
      */
     private function setOracleConnectType ($type = 0) {
@@ -237,7 +236,7 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Инициация подключения к базе данных
+     * Initiating a connection to a database
      * @return boolean
      * @throws PDOException
      */
@@ -280,9 +279,9 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Подготовка запроса к базе данных по правилам модуля PDO
-     * @param $sql - запрос
-     * @param array $values - передаваемые параметры
+     * Preparing a database query using the PDO module rules
+     * @param $sql - query
+     * @param array $values - parameters to send
      * @return string
      */
     public function prepare ($sql, $values = array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY)) {
@@ -299,9 +298,9 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Выполнение ранее подготовленного запроса
-     * @param $values - значения, подставляемые в подготовленный запрос
-     * @param mixed $pdo - объект модуля PDO из функции prepare
+     * Executing a previously prepared query
+     * @param $values - values ​​substituted into the prepared query
+     * @param mixed $pdo - PDO module object from prepare function
      * @return bool
      */
     public function execute ($values, $pdo = '') {
@@ -330,9 +329,9 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Построковая выборка данных
-     * @param string $mode - параметры выборки
-     * @param mixed $pdo - объект модуля PDO из функции prepare или query
+     * Row-by-row data extraction
+     * @param string $mode - sampling parameters
+     * @param mixed $pdo - PDO module object from prepare or query function
      * @return bool
      */
     public function fetch ($mode = '', $pdo = '') {
@@ -342,9 +341,9 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Выборка массива всех данных
-     * @param string $mode - параметры выборки
-     * @param mixed $pdo - объект модуля PDO из функции prepare или query
+     * Fetching an array of all data
+     * @param string $mode - sampling parameters
+     * @param mixed $pdo - PDO module object from prepare or query function
      * @return bool
      */
     public function fetchAll ($mode = '', $pdo = '') {
@@ -354,8 +353,8 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Выполнение SQL запроса к Базе данных
-     * @param $sql - запрос
+     * Executing SQL query to the Database
+     * @param $sql - query
      * @return string
      */
     public function query ($sql) {
@@ -374,11 +373,11 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Установка параметров выборки
-     * @param int $mode - параметры выборки
-     * @param mixed $param_1 - первая группа дополнительных параметров
-     * @param mixed $param_2 - вторая группа дополнительных параметров
-     * @param mixed $pdo - объект модуля PDO из функции prepare или query
+     * Setting up sampling parameters
+     * @param int $mode - sampling parameters
+     * @param mixed $param_1 - first group of additional parameters
+     * @param mixed $param_2 - second group of additional parameters
+     * @param mixed $pdo - PDO module object from prepare or query function
      * @return bool
      */
     public function setFetchMode ($mode = PDO::FETCH_ASSOC, $param_1 = '', $param_2 = '', $pdo = '') {
@@ -388,7 +387,7 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Получение списка таблиц в БД
+     * Getting a list of tables in a database
      * @return array|mixed
      */
     public function getTableList () {
@@ -416,8 +415,8 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Получение списка существующих полей в таблице
-     * @param $table - имя таблицы
+     * Getting a list of existing fields in a table
+     * @param $table - table name
      * @return array|mixed
      */
     public function getListFields($table) { // Get Fields from table
@@ -453,9 +452,9 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Создание одиночного Insert запроса
-     * @param string $table - имя таблицы
-     * @param array $values - массив данных для добавления в формате array(['имя_поля'] => 'значение');
+     * Creating a Single Insert Query
+     * @param string $table - table name
+     * @param array $values - array of data to add in the format array(['field_name'] => 'value');
      * @return string
      */
     public function getInsertSQL ($table, $values) { // Create Insert query
@@ -481,10 +480,10 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Создание Update запроса
-     * @param string $table - имя таблицы
-     * @param array $values - массив данных для обновления в формате array(['имя_поля'] => 'значение');
-     * @param mixed $index - массив данных условия WHERE в формате array(['имя_поля'] => 'значение');
+     * Creating an Update query
+     * @param string $table - table name
+     * @param array $values - array of data for update in the format array(['field_name'] => 'value');
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return string
      */
     public function getUpdateSQL ($table, $values, $index=false) { // Create Update query
@@ -524,9 +523,9 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Создание Delete запроса
-     * @param string $table - имя таблицы
-     * @param mixed $index - массив данных условия WHERE в формате array(['имя_поля'] => 'значение');
+     * Creating a Delete query
+     * @param string $table - table name
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return string
      */
     public function getDeleteSQL ($table, $index=false) { // Create Delete query
@@ -552,8 +551,8 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Возвращает ID последней добавленной записи в таблицу
-     * @param string $name - имя таблицы или имя объекта последовательности, который должен выдать ID (pgsql), если не указано, то возвращает последний ID во всей БД
+     * Returns the ID of the last record added to the table.
+     * @param string $name - table name or sequence object name that should return the ID (pgsql), if not specified, returns the last ID in the entire DB
      * @return mixed
      */
     public function lastID ($name = '') {
@@ -565,11 +564,11 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Обработка ошибок.
-     * Вывод на экран, отправка на почту администратору, сохранение в переменную error.
-     * @param bool $message - сообщение об ошибке
-     * @param string $code - код ошибки
-     * @param mixed $pdo - объект подключения
+     * Error handling.
+     * Output to screen, send to administrator by email, save to error variable.
+     * @param bool $message - error message
+     * @param string $code - error code
+     * @param mixed $pdo - connection object
      * @return bool
      */
     private function DB_Error ($message=false, $code = '', $pdo = '') {

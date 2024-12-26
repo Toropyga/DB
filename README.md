@@ -104,7 +104,7 @@ $MYSQL = new FYN\DB\MySQL();
 $ORACLE = new FYN\DB\Oracle();
 $PDO = new FYN\DB\PDO_LIB();
 ```
-или
+or
 ```php
 /**
  * DBMySQL constructor.
@@ -176,7 +176,7 @@ $result1 = $MYSQL->getResult($sql, $one);
 $result2 = $ORACLE->getResult($sql, $one);
 $result3 = $PDO->getResult($sql, $one);
 ```
-Где:
+Where:
 * **$sql** - SQL query to DB
 * **$one** - type of return 
 

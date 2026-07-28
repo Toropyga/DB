@@ -4,8 +4,8 @@
  * Class for working with MySQL database
  * @author FYN
  * Date: 15/04/2005
- * @version 5.1.1
- * @copyright 2005-2024
+ * @version 5.2.0
+ * @copyright 2005-2026
  */
 
 namespace FYN\DB;
@@ -353,6 +353,17 @@ class MySQL extends AbstractDB {
     }
 
     /**
+     * Insert data to table
+     * @param string $table - table name
+     * @param array $values - array of data to add in the format array(['field_name'] => 'value');
+     * @return string
+     */
+    public function setInsert ($table, $values) {
+        $sql = $this->getInsertSQL($table, $values);
+        return $this->query($sql);
+    }
+
+    /**
      * Creating a Single Insert Query
      * @param string $table - table name
      * @param array $values - array of data to add in the format array(['field_name'] => 'value');
@@ -362,7 +373,7 @@ class MySQL extends AbstractDB {
         $code = 'getInsertSQL';
         if (!$tab_fields = $this->getListFields($table)) return FALSE;
         if (!is_array($values)) {
-            $this->DB_Error("Could not create update query: Error values - $values (not array)", $code);
+            $this->DB_Error("Could not create insert query: Error values - $values (not array)", $code);
             return false;
         }
         elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
@@ -372,7 +383,7 @@ class MySQL extends AbstractDB {
             if (in_array($key,$tab_fields)) {
                 $fields = ($fields)?"$fields, `$key`":"`$key`";
                 if (is_array($value)) $value = json_encode($value);
-                else $value = addslashes($value);
+                $value = $this->escapeString($value);
                 $value = ($value == 'NULL')?$value:"'$value'";
                 $val = ($val)?"$val, $value":"$value";
             }
@@ -401,7 +412,7 @@ class MySQL extends AbstractDB {
         foreach ($values as $key => $value) {
             if (in_array($key,$tab_fields)) {
                 if (is_array($value)) $value = json_encode($value);
-                else $value = addslashes($value);
+                $value = $this->escapeString($value);
                 $value = ($value == 'NULL')?$value:"'$value'";
                 $fields = ($fields)?"$fields, `$key` = $value":"`$key` = $value";
             }
@@ -571,5 +582,14 @@ class MySQL extends AbstractDB {
             exit;
         }
         return false;
+    }
+
+    /**
+     * Escape string
+     * @param string $string
+     * @return string
+     */
+    private function escapeString ($string) {
+        return $this->db_connect->real_escape_string($string);
     }
 }

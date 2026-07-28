@@ -4,8 +4,8 @@
  * !!! In development !!!
  * @author FYN
  * Date: 16/09/2019
- * @version 0.1.5
- * @copyright 2019-2024
+ * @version 0.2.0
+ * @copyright 2019-2026
  */
 
 namespace FYN\DB;
@@ -291,7 +291,7 @@ class PDO_LIB extends AbstractDB {
             if (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
         }
         catch (PDOException $e) {
-            $message = "Could not prepare: $sql\nError: ".$e->getMessage();;
+            $message = "Could not prepare: $sql\nError: ".$e->getMessage();
             return $this->DB_Error($message, $code);
         }
         return $this->pdo;
@@ -305,27 +305,28 @@ class PDO_LIB extends AbstractDB {
      */
     public function execute ($values, $pdo = '') {
         $code = 'execute';
+        $res = false;
         if (is_object($pdo) && method_exists($pdo, 'execute')) {
             try {
-                $pdo->execute($values);
+                $res = $pdo->execute($values);
                 if (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
             }
             catch (PDOException $e) {
-                $message = "Could not execute.\nError: ".$e->getMessage();;
+                $message = "Could not execute.\nError: ".$e->getMessage();
                 return $this->DB_Error($message, $code);
             }
         }
         elseif (is_object($this->pdo) && method_exists($this->pdo, 'execute')) {
             try {
-                $this->pdo->execute($values);
+                $res = $this->pdo->execute($values);
                 if (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
             }
             catch (PDOException $e) {
-                $message = "Could not execute.\nError: ".$e->getMessage();;
+                $message = "Could not execute.\nError: ".$e->getMessage();
                 return $this->DB_Error($message, $code);
             }
         }
-        return false;
+        return $res;
     }
 
     /**
@@ -366,7 +367,7 @@ class PDO_LIB extends AbstractDB {
             if (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
         }
         catch (PDOException $e) {
-            $message = "Could not query: $sql\nError: ".$e->getMessage();;
+            $message = "Could not query: $sql\nError: ".$e->getMessage();
             return $this->DB_Error($message, $code);
         }
         return $this->pdo;
@@ -452,16 +453,16 @@ class PDO_LIB extends AbstractDB {
     }
 
     /**
-     * Creating a Single Insert Query
+     * Insert data to table
      * @param string $table - table name
      * @param array $values - array of data to add in the format array(['field_name'] => 'value');
      * @return string
      */
-    public function getInsertSQL ($table, $values) { // Create Insert query
-        $code = 'getInsertSQL';
+    public function setInsert ($table, $values) {
+        $code = 'setInsert';
         if (!$tab_fields = $this->getListFields($table)) return FALSE;
         if (!is_array($values)) {
-            $this->DB_Error("Could not create update query: Error values - $values (not array)", $code);
+            $this->DB_Error("Could not create insert query: Error values - $values (not array)", $code);
             return false;
         }
         elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
@@ -471,12 +472,97 @@ class PDO_LIB extends AbstractDB {
             if (in_array($key,$tab_fields)) {
                 $fields = ($fields)?"$fields, `$key`":"`$key`";
                 if (is_array($value)) $value = json_encode($value);
-                else $value = addslashes($value);
+                $val = ($val)?"$val, :$key":":$key";
+            }
+        }
+        $sql = "INSERT INTO $table ($fields) VALUES ($val)";
+        $this->prepare($sql);
+        if (!$this->execute($values)) {
+            $message = "Could not insert.";
+            return $this->DB_Error($message, $code);
+        }
+        return true;
+    }
+
+    /**
+     * Creating a Single Insert Query
+     * @param string $table - table name
+     * @param array $values - array of data to add in the format array(['field_name'] => 'value');
+     * @return string
+     */
+    public function getInsertSQL ($table, $values) { // Create Insert query
+        $code = 'getInsertSQL';
+        if (!$tab_fields = $this->getListFields($table)) return FALSE;
+        if (!is_array($values)) {
+            $this->DB_Error("Could not create insert query: Error values - $values (not array)", $code);
+            return false;
+        }
+        elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+        $fields = '';
+        $val = '';
+        foreach ($values as $key => $value) {
+            if (in_array($key,$tab_fields)) {
+                $fields = ($fields)?"$fields, `$key`":"`$key`";
+                if (is_array($value)) $value = json_encode($value);
+                $value = $this->escapeString($value);
                 $value = ($value == 'NULL')?$value:"'$value'";
                 $val = ($val)?"$val, $value":"$value";
             }
         }
         return "INSERT INTO $table ($fields) VALUES ($val)";
+    }
+
+    /**
+     * Update data into table
+     * @param string $table - table name
+     * @param array $values - array of data for update in the format array(['field_name'] => 'value');
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
+     * @return string
+     */
+    public function setUpdate ($table, $values) {
+        $code = 'setUpdate';
+        if (!$tab_fields = $this->getListFields($table)) return FALSE;
+        if (!is_array($values)) {
+            $this->DB_Error("Could not create update query: Error values - $values (not array)", $code);
+            return false;
+        }
+        elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+        $fields = '';
+        $val = array();
+        foreach ($values as $key => $value) {
+            if (in_array($key,$tab_fields)) {
+                if (is_array($value)) $value = json_encode($value);
+                $fields = ($fields)?"$fields, `$key` = :$key":"`$key` = :$key";
+                $val[$key] = $value;
+            }
+        }
+        $ind = '';
+        if ($index) {
+            if (!is_array($index)) {
+                $this->DB_Error("Could not create update query: Error keys - $index (not array)", $code);
+                return false;
+            }
+            elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+            foreach ($index as $key => $value) {
+                if (in_array($key,$tab_fields)) {
+                    if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
+                    elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
+                    else {
+                        $n_key = 'index_'.$key;
+                        $ind = ($ind)?"$ind AND `$key` = ':$n_key'":"`$key` = ':$n_key'";
+                        $val[$n_key] = $value;
+                    }
+                }
+            }
+        }
+        if ($ind) $ind = "WHERE $ind";
+        $sql = "UPDATE $table SET $fields $ind";
+        $this->prepare($sql);
+        if (!$this->execute($val)) {
+            $message = "Could not update.";
+            return $this->DB_Error($message, $code);
+        }
+        return true;
     }
 
     /**
@@ -498,7 +584,7 @@ class PDO_LIB extends AbstractDB {
         foreach ($values as $key => $value) {
             if (in_array($key,$tab_fields)) {
                 if (is_array($value)) $value = json_encode($value);
-                else $value = addslashes($value);
+                $value = $this->escapeString($value);
                 $value = ($value == 'NULL')?$value:"'$value'";
                 $fields = ($fields)?"$fields, `$key` = $value":"`$key` = $value";
             }
@@ -589,5 +675,24 @@ class PDO_LIB extends AbstractDB {
         parent::Error($message, 'PDO_LIB');
         if ($this->error_exit) exit;
         return false;
+    }
+    
+    /**
+     * Escape string
+     * @param string $string
+     * @return string
+     */
+    private function escapeString ($string) {
+        switch ($this->db_type) {
+            case 'odbc':
+            case 'oci':
+                $string = $this->db_connect->quote($string);
+            case 'pgsql':
+                $string = pg_escape_string($string);
+            case 'mysql':
+            default:
+                $string = $this->db_connect->real_escape_string($string);
+        }
+        return $string;
     }
 }

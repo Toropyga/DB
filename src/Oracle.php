@@ -2,10 +2,9 @@
 
 /**
  * Class for working with Oracle database
- * @author FYN
- * Date: 12/03/2009
- * @version 3.1.5
- * @copyright 2009-2024
+ * @author Yuri Frantsevich
+ * @version 1.1.5
+ * @copyright 2025
  */
 
 namespace FYN\DB;

@@ -4,7 +4,7 @@
  * !!! In development !!!
  * @author FYN
  * Date: 16/09/2019
- * @version 0.2.0
+ * @version 0.2.1
  * @copyright 2019-2026
  */
 
@@ -519,7 +519,7 @@ class PDO_LIB extends AbstractDB {
      * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return string
      */
-    public function setUpdate ($table, $values) {
+    public function setUpdate ($table, $values, $index = false) {
         $code = 'setUpdate';
         if (!$tab_fields = $this->getListFields($table)) return FALSE;
         if (!is_array($values)) {
@@ -606,6 +606,44 @@ class PDO_LIB extends AbstractDB {
         }
         if ($ind) $ind = "WHERE $ind";
         return "UPDATE $table SET $fields $ind";
+    }
+
+    /**
+     * Deleting from table
+     * @param string $table - table name
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
+     * @return string
+     */
+    public function setDelete ($table, $index=false) {
+        $code = 'setDelete';
+        if (!$tab_fields = $this->getListFields($table)) return false;
+        $ind = '';
+        $val = array();
+        if ($index) {
+            if (!is_array($index)) {
+                $this->DB_Error("Could not create delete query: Error keys - $index (not array)");
+                return FALSE;
+            }
+            elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+            foreach ($index as $key => $value) {
+                if (in_array($key,$tab_fields)) {
+                    if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
+                    elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
+                    else {
+                        $ind = ($ind)?"$ind AND `$key` = ':$key'":"`$key` = ':$key'";
+                        $val[$key] = $value;
+                    }
+                }
+            }
+        }
+        if ($ind) $ind = "WHERE $ind";
+        $sql = "DELETE FROM $table $ind";
+        $this->prepare($sql);
+        if (!$this->execute($val)) {
+            $message = "Could not update.";
+            return $this->DB_Error($message, $code);
+        }
+        return true;
     }
 
     /**

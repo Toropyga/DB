@@ -4,7 +4,7 @@
  * Class for working with MySQL database
  * @author FYN
  * Date: 15/04/2005
- * @version 5.2.0
+ * @version 5.2.2
  * @copyright 2005-2026
  */
 
@@ -394,6 +394,18 @@ class MySQL extends AbstractDB {
     }
 
     /**
+     * Updating data in table
+     * @param string $table - table name
+     * @param array $values - array of data for update in the format array(['field_name'] => 'value');
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
+     * @return string
+     */
+    public function setUpdate ($table, $values, $index=false) {
+        $sql = $this->getUpdateSQL($table, $values);
+        return $this->query($sql);
+    }
+
+    /**
      * Creating an Update query
      * @param string $table - table name
      * @param array $values - array of data for update in the format array(['field_name'] => 'value');
@@ -428,7 +440,10 @@ class MySQL extends AbstractDB {
                 if (in_array($key,$tab_fields)) {
                     if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
                     elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
-                    else $ind = ($ind)?"$ind AND `$key` = '$value'":"`$key` = '$value'";
+                    else {
+                        $value = $this->escapeString($value);
+                        $ind = ($ind)?"$ind AND `$key` = '$value'":"`$key` = '$value'";
+                    }
                 }
             }
         }
@@ -436,6 +451,17 @@ class MySQL extends AbstractDB {
         $sql = "UPDATE $table SET $fields $ind";
         if ($this->log_all) $this->logs[] = "Create UPDATE QUERY: ".$sql." - success";
         return $sql;
+    }
+
+    /**
+     * Creating and run a Delete query
+     * @param string $table - table name
+     * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
+     * @return string
+     */
+    public function setDelete ($table, $index=false) {
+        $sql = $this->getDeleteSQL($table, $index);
+        return $this->query($sql);
     }
 
     /**
@@ -458,7 +484,10 @@ class MySQL extends AbstractDB {
                 if (in_array($key,$tab_fields)) {
                     if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
                     elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
-                    else $ind = ($ind)?"$ind AND `$key` = '$value'":"`$key` = '$value'";
+                    else {
+                        $value = $this->escapeString($value);
+                        $ind = ($ind)?"$ind AND `$key` = '$value'":"`$key` = '$value'";
+                    }
                 }
             }
         }
@@ -488,7 +517,7 @@ class MySQL extends AbstractDB {
                 }
             }
             $strSQL = join ("", $SQL);
-            $arrSQL = preg_split(";", $strSQL);
+            $arrSQL = preg_split("/;/", $strSQL);
             if ($this->getDB()) {
                 for ($i=0; $i < count($arrSQL); $i++) {
                     if (strlen(trim($arrSQL[$i])) > 1) {

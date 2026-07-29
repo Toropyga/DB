@@ -2,13 +2,13 @@
 
 /**
  * Class for working with MySQL database
- * @author FYN
+ * @author Yuri Frantsevich
  * Date: 15/04/2005
- * @version 5.2.2
+ * @version 6.0.0
  * @copyright 2005-2026
  */
 
-namespace FYN\DB;
+namespace Toropyga\DB;
 
 use mysqli_result;
 

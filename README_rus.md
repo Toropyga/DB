@@ -3,7 +3,7 @@
 Классы для работы с базами данных
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v1.3.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v2.0.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v5.1_--_v8-blueviolet.svg)
 
 ## Содержание
@@ -100,9 +100,9 @@ require_once("vendor/autoload.php");
 ---
 ### Инициализация классов
 ```php
-$MYSQL = new FYN\DB\MySQL();
-$ORACLE = new FYN\DB\Oracle();
-$PDO = new FYN\DB\PDO_LIB();
+$MYSQL = new Toropyga\DB\MySQL();
+$ORACLE = new Toropyga\DB\Oracle();
+$PDO = new Toropyga\DB\PDO_LIB();
 ```
 или
 ```php
@@ -115,7 +115,7 @@ $PDO = new FYN\DB\PDO_LIB();
  * @param mixed $USER - пользователь
  * @param mixed $PASS - пароль
  */
-$MYSQL = new FYN\DB\MySQL($HOST, $PORT, $NAME, $USER, $PASS);
+$MYSQL = new Toropyga\DB\MySQL($HOST, $PORT, $NAME, $USER, $PASS);
 
 /**
  * DBOracle constructor.
@@ -129,7 +129,7 @@ $MYSQL = new FYN\DB\MySQL($HOST, $PORT, $NAME, $USER, $PASS);
  * @param string $CHARSET - кодировка (по умолчанию - не указана)
  * @param bool $no_connect - не подключаться к БД при инициации класса (по умолчанию - false)
  */
-$ORACLE = new FYN\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CONNECT, $CHARSET, $no_connect);
+$ORACLE = new Toropyga\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CONNECT, $CHARSET, $no_connect);
 
 /**
  * PDO_LIB constructor.
@@ -144,7 +144,7 @@ $ORACLE = new FYN\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CON
  *      1 - используется хост и имя базы данных
  *      2 - используется полная запись для подключения
  */
-$PDO = new FYN\DB\PDO_LIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $oracle_connect_type);
+$PDO = new Toropyga\DB\PDO_LIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $oracle_connect_type);
 ```
 ---
 ### Получение списка таблиц

@@ -7,7 +7,7 @@
  * @copyright 2025
  */
 
-namespace FYN\DB;
+namespace Toropyga\DB;
 
 class Oracle extends AbstractDB {
     /**

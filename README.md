@@ -3,7 +3,7 @@
 Database classes
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v1.3.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v2.0.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v5.1_--_v8-blueviolet.svg)
 
 ## Content
@@ -100,9 +100,9 @@ require_once("vendor/autoload.php");
 ---
 ### Classes initialisation
 ```php
-$MYSQL = new FYN\DB\MySQL();
-$ORACLE = new FYN\DB\Oracle();
-$PDO = new FYN\DB\PDO_LIB();
+$MYSQL = new Toropyga\DB\MySQL();
+$ORACLE = new Toropyga\DB\Oracle();
+$PDO = new Toropyga\DB\PDO_LIB();
 ```
 or
 ```php
@@ -115,7 +115,7 @@ or
  * @param mixed $USER - user name
  * @param mixed $PASS - user password
  */
-$MYSQL = new FYN\DB\MySQL($HOST, $PORT, $NAME, $USER, $PASS);
+$MYSQL = new Toropyga\DB\MySQL($HOST, $PORT, $NAME, $USER, $PASS);
 
 /**
  * DBOracle constructor.
@@ -129,7 +129,7 @@ $MYSQL = new FYN\DB\MySQL($HOST, $PORT, $NAME, $USER, $PASS);
  * @param string $CHARSET - charset (default not set)
  * @param bool $no_connect - don't connect to DB when class is initiated (default - false, connects)
  */
-$ORACLE = new FYN\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CONNECT, $CHARSET, $no_connect);
+$ORACLE = new Toropyga\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CONNECT, $CHARSET, $no_connect);
 
 /**
  * PDO_LIB constructor.
@@ -144,7 +144,7 @@ $ORACLE = new FYN\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CON
  *      1 - host and DB name is used
  *      2 - full entry is used for connection
  */
-$PDO = new FYN\DB\PDO_LIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $oracle_connect_type);
+$PDO = new Toropyga\DB\PDO_LIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $oracle_connect_type);
 ```
 ---
 ### Getting a list of tables

@@ -1,14 +1,13 @@
 <?php
 /**
  * A generic class that uses the PDO library.
- * !!! In development !!!
- * @author FYN
+ * @author Yuri Frantsevich
  * Date: 16/09/2019
- * @version 0.2.1
+ * @version 1.0.0
  * @copyright 2019-2026
  */
 
-namespace FYN\DB;
+namespace Toropyga\DB;
 
 use PDO, PDOException;
 

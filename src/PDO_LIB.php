@@ -3,7 +3,7 @@
  * A generic class that uses the PDO library.
  * @author Yuri Frantsevich
  * Date: 16/09/2019
- * @version 1.0.0
+ * @version 1.0.1
  * @copyright 2019-2026
  */
 

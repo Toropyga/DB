@@ -23,7 +23,7 @@
     "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
-            "FYN\\DB\\": "src/"
+            "Toropyga\\DB\\": "src/"
         }
     }
 }

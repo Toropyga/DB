@@ -3,7 +3,7 @@
 /**
  * Class for working with Oracle database
  * @author Yuri Frantsevich
- * @version 2.0.1
+ * @version 2.0.2
  * @copyright 2025
  */
 

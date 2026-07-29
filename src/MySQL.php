@@ -4,7 +4,7 @@
  * Class for working with MySQL database
  * @author Yuri Frantsevich
  * Date: 15/04/2005
- * @version 6.0.1
+ * @version 6.0.2
  * @copyright 2005-2026
  */
 

@@ -2,7 +2,7 @@
 /**
  * DB.
  * @author Yuri Frantsevich
- * @version 2.0.2
+ * @version 2.0.3
  * @copyright 2025
  */
 
@@ -13,7 +13,7 @@ class AbstractDB {
      * Логи
      * @var array
      */
-    protected $logs = array();
+    protected $logs = [];
     /**
      * Log file name
      * @var string
@@ -48,7 +48,7 @@ class AbstractDB {
      * Existing error codes
      * @var array
      */
-    protected $error_code = array();
+    protected $error_code = [];
 
     /**
      * Enabling the error output option
@@ -175,13 +175,22 @@ class AbstractDB {
         if ($strIP == '::1') $strIP = '127.0.0.1';
         if (!preg_match("/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/", $ipn)) $ipn = '';
         if (!preg_match("/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/", $strIP)) $strIP = $ipn;
-        if ($strIP != $ipn) {
-            $ip['proxy'] = $ipn;
-            $ip['ip'] = $strIP;
+        if ($ipn) $ipn = filter_var($ipn, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        if ($strIP) $strIP = filter_var($strIP, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        $ip = [];
+        if ($strIP) {
+            if ($strIP != $ipn) {
+                $ip['proxy'] = $ipn;
+                $ip['ip'] = $strIP;
+            }
+            else {
+                $ip['proxy'] = '';
+                $ip['ip'] = $ipn;
+            }
         }
         else {
             $ip['proxy'] = '';
-            $ip['ip'] = $ipn;
+            $ip['ip'] = '';
         }
         return $ip;
     }

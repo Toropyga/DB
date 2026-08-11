@@ -3,7 +3,7 @@
 /**
  * Class for working with Oracle database
  * @author Yuri Frantsevich
- * @version 2.0.2
+ * @version 2.0.3
  * @copyright 2025
  */
 
@@ -19,7 +19,7 @@ class Oracle extends AbstractDB {
      * List of existing tables in Oracle DB and their fields
      * @var array
      */
-    private $db_TableListOracle = array();
+    private $db_TableListOracle = [];
     /**
      * DB Oracle connection configuration
      * @var array
@@ -63,12 +63,12 @@ class Oracle extends AbstractDB {
      * array of query variables
      * @var array
      */
-    private $sql_param = array();
+    private $sql_param = [];
     /**
      * Result
      * @var array
      */
-    private $stat = array();
+    private $stat = [];
 
     /**
      * Client version
@@ -102,23 +102,23 @@ class Oracle extends AbstractDB {
      * @param bool $no_connect - don't connect to DB when class is initiated
      */
     public function __construct ($HOST=NULL, $NAME=NULL, $USER=NULL, $PASS=NULL, $USE_HOST=NULL, $PORT=NULL, $P_CONNECT=NULL, $CHARSET = '', $no_connect = false) {
-        if (defined('DB_ORACLE_HOST') && !$HOST) $this->oracle_config['host'] = DB_ORACLE_HOST; elseif ($HOST) $this->oracle_config['host'] = $HOST;
-        if (defined('DB_ORACLE_PORT') && !$PORT) $this->oracle_config['port'] = DB_ORACLE_PORT; elseif ($PORT) $this->oracle_config['port'] = $PORT;
-        if (defined('DB_ORACLE_NAME') && !$NAME) $this->oracle_config['name'] = DB_ORACLE_NAME; elseif ($NAME) $this->oracle_config['name'] = $NAME;
-        if (defined('DB_ORACLE_USER') && !$USER) $this->oracle_config['user'] = DB_ORACLE_USER; elseif ($USER) $this->oracle_config['user'] = $USER;
-        if (defined('DB_ORACLE_PASS') && !$PASS) $this->oracle_config['pass'] = DB_ORACLE_PASS; elseif ($PASS) $this->oracle_config['pass'] = $PASS;
-        if (defined('DB_ORACLE_STORAGE') && ($P_CONNECT !== false || $P_CONNECT !== true)) $this->oracle_config['p_connect'] = DB_ORACLE_STORAGE;
+        if (defined('\DB_ORACLE_HOST') && !$HOST) $this->oracle_config['host'] = \DB_ORACLE_HOST; elseif ($HOST) $this->oracle_config['host'] = $HOST;
+        if (defined('\DB_ORACLE_PORT') && !$PORT) $this->oracle_config['port'] = \DB_ORACLE_PORT; elseif ($PORT) $this->oracle_config['port'] = $PORT;
+        if (defined('\DB_ORACLE_NAME') && !$NAME) $this->oracle_config['name'] = \DB_ORACLE_NAME; elseif ($NAME) $this->oracle_config['name'] = $NAME;
+        if (defined('\DB_ORACLE_USER') && !$USER) $this->oracle_config['user'] = \DB_ORACLE_USER; elseif ($USER) $this->oracle_config['user'] = $USER;
+        if (defined('\DB_ORACLE_PASS') && !$PASS) $this->oracle_config['pass'] = \DB_ORACLE_PASS; elseif ($PASS) $this->oracle_config['pass'] = $PASS;
+        if (defined('\DB_ORACLE_STORAGE') && ($P_CONNECT !== false || $P_CONNECT !== true)) $this->oracle_config['p_connect'] = \DB_ORACLE_STORAGE;
         elseif ($P_CONNECT && ($P_CONNECT === false || $P_CONNECT === true)) $this->oracle_config['p_connect'] = $P_CONNECT;
-        if (defined('DB_ORACLE_CHARSET') && !$CHARSET) $this->oracle_config['charset'] = DB_ORACLE_CHARSET; elseif ($CHARSET) $this->oracle_config['charset'] = $CHARSET;
+        if (defined('\DB_ORACLE_CHARSET') && !$CHARSET) $this->oracle_config['charset'] = \DB_ORACLE_CHARSET; elseif ($CHARSET) $this->oracle_config['charset'] = $CHARSET;
 
-        if (defined('DB_ORACLE_DEBUG')) $this->debug = DB_ORACLE_DEBUG;
-        if (defined('DB_ORACLE_ERROR_EXIT')) $this->error_exit = DB_ORACLE_ERROR_EXIT;
-        if (defined('DB_ORACLE_LOG_NAME')) $this->log_file = DB_ORACLE_LOG_NAME;
-        if (defined('DB_ORACLE_LOG_ALL')) $this->log_all = DB_ORACLE_LOG_ALL;
+        if (defined('\DB_ORACLE_DEBUG')) $this->debug = \DB_ORACLE_DEBUG;
+        if (defined('\DB_ORACLE_ERROR_EXIT')) $this->error_exit = \DB_ORACLE_ERROR_EXIT;
+        if (defined('\DB_ORACLE_LOG_NAME')) $this->log_file = \DB_ORACLE_LOG_NAME;
+        if (defined('\DB_ORACLE_LOG_ALL')) $this->log_all = \DB_ORACLE_LOG_ALL;
 
-        if (defined('DB_ORACLE_USE_HOST') && !in_array($USE_HOST, array(0,1,2))) $USE_HOST = DB_ORACLE_USE_HOST;
+        if (defined('\DB_ORACLE_USE_HOST') && !in_array($USE_HOST, array(0,1,2))) $USE_HOST = \DB_ORACLE_USE_HOST;
         if ($USE_HOST == 2 || $USE_HOST == 1) $this->oracle_config['use_host'] = $USE_HOST;
-        if (defined("SQLT_BOL")) {
+        if (defined("\SQLT_BOL")) {
             $this->types[] = SQLT_BOL;
             $this->types[] = OCI_B_BOL;
         }
@@ -157,7 +157,7 @@ class Oracle extends AbstractDB {
      *      'dub' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
      * @return mixed SQL query result
      */
-    public function getResults ($sql, $one=0) {
+    public function getResults (string $sql, int $one = 0): array|bool {
         if (!$this->status) {
             if ($this->oracle_config['p_connect']) return false;
             else $this->getOracle();
@@ -169,7 +169,7 @@ class Oracle extends AbstractDB {
             $one = 0;
         }
         if ($one == 1) $result = '';
-        else $result = array();
+        else $result = [];
         if ($res && $col_row = sizeof($res)) {
             if ($col_row == 1 && $one && $one < 3) {
                 if ($one != 1) foreach ($res as $row) $result = $row;
@@ -258,7 +258,7 @@ class Oracle extends AbstractDB {
      *    // SQLT_BOL or OCI_B_BOL - for PL/SQL BOOLEAN
      * @param array $bind
      */
-    public function setBind ($bind = array()) {
+    public function setBind ($bind = []) {
         $this->sql_param = $bind;
     }
 
@@ -289,7 +289,7 @@ class Oracle extends AbstractDB {
         if ($this->debug) $this->logs[] = "SQL = ". $sql;
         $this->error = false;
         $stat = oci_parse($this->oracle, $sql);
-        $replace = array();
+        $replace = [];
         foreach ($this->sql_param as $key => $val) {
             if (preg_match("/$key/", $sql)) {
                 $n = strtr($key, array(':'=>''));
@@ -328,7 +328,7 @@ class Oracle extends AbstractDB {
             if ($this->cursor && $curs) {
                 $run_time = time();
                 if (@oci_execute($stat) && @oci_execute($curs)) {
-                    $res = array();
+                    $res = [];
                     while ($data = @oci_fetch_array($curs, OCI_ASSOC + OCI_RETURN_NULLS)) {
                         if (is_array($data)) {
                             foreach ($data as $key=>$row) {
@@ -354,7 +354,7 @@ class Oracle extends AbstractDB {
                     @oci_free_statement($curs);
                     @oci_free_statement($stat);
                     if (isset($this->error_code['query']) && $this->error_code['query']) unset($this->error_code['query']);
-                    $this->stat = array();
+                    $this->stat = [];
                     foreach ($this->sql_param as $key => $val) {
                         $n = strtr($key, array(':'=>''));
                         if (isset($$n))$this->stat[$n] = $$n;
@@ -379,11 +379,11 @@ class Oracle extends AbstractDB {
             }
             elseif (!$this->cursor) {
                 if (@oci_execute($stat)) {
-                    $res = array();
+                    $res = [];
                     while ($data = oci_fetch_array($stat, OCI_ASSOC + OCI_RETURN_NULLS)) $res[] = $data;
                     @oci_free_statement($stat);
                     if (isset($this->error_code['query']) && $this->error_code['query']) unset($this->error_code['query']);
-                    $this->stat = array();
+                    $this->stat = [];
                     foreach ($this->sql_param as $key => $val) {
                         $n = strtr($key, array(':'=>''));
                         if (isset($$n))$this->stat[$n] = $$n;
@@ -430,7 +430,7 @@ class Oracle extends AbstractDB {
      * @return array
      */
     private function res2array ($res, $one) {
-        $result = array();
+        $result = [];
         switch ($one) {
             case 3:
                 foreach ($res as $row) {
@@ -485,7 +485,7 @@ class Oracle extends AbstractDB {
      * @return array|mixed
      */
     private function getListFields ($table, $all = 0) { // Get Filds from table
-        $name_field = array();
+        $name_field = [];
         if (!isset($this->db_TableListOracle[$table])) {
             if (in_array($table, $this->getTableList())) {
                 if ($all) $sql = "SELECT column_name FROM all_tab_cols WHERE table_name = '$table'";
@@ -565,12 +565,12 @@ class Oracle extends AbstractDB {
                 $fields = ($fields)?"$fields, $key = '$value'":"$key = '$value'";
             }
         }
+        $ind = '';
         if ($index) {
             if (!is_array($index)) {
                 $this->logs[] = $this->error_text."Could not create update query: Error keys - $index (not array)";
                 return FALSE;
             }
-            $ind = '';
             foreach ($index as $key => $value) {
                 if (in_array($key,$tab_fields)) {
                     $ind = ($ind)?"$ind AND $key = '$value'":"$key = '$value'";

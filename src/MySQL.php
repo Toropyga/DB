@@ -4,7 +4,7 @@
  * Class for working with MySQL database
  * @author Yuri Frantsevich
  * Date: 15/04/2005
- * @version 6.0.2
+ * @version 6.0.3
  * @copyright 2005-2026
  */
 
@@ -63,12 +63,12 @@ class MySQL extends AbstractDB {
      * List of filds in tables
      * @var array
      */
-    private $db_TableList = array();
+    private $db_TableList = [];
     /**
      * List of tables in DB
      * @var array
      */
-    private $db_Tables = array();
+    private $db_Tables = [];
     /**
      * Use transaction
      * @var bool
@@ -85,20 +85,20 @@ class MySQL extends AbstractDB {
      * @param mixed $PASS - user password
      */
     public function __construct ($HOST = false, $PORT = false, $NAME = false, $USER = false, $PASS = false) {
-        if (defined('DB_MYSQL_HOST') && !$HOST) $this->db_host = DB_MYSQL_HOST; elseif ($HOST) $this->db_host = $HOST;
-        if (defined('DB_MYSQL_PORT') && !$PORT) $this->db_port = DB_MYSQL_PORT; elseif ($PORT) $this->db_port = $PORT;
-        if (defined('DB_MYSQL_NAME') && !$NAME) $this->db_name = DB_MYSQL_NAME; elseif ($NAME) $this->db_name = $NAME;
-        if (defined('DB_MYSQL_USER') && !$USER) $this->db_user = DB_MYSQL_USER; elseif ($USER) $this->db_user = $USER;
-        if (defined('DB_MYSQL_PASS') && !$PASS) $this->db_pass = DB_MYSQL_PASS; elseif ($PASS) $this->db_pass = $PASS;
-        if (defined('DB_MYSQL_STORAGE')) $this->db_storage = DB_MYSQL_STORAGE;
-        if (defined('DB_MYSQL_USE_TRANSACTION')) $this->use_transaction = DB_MYSQL_USE_TRANSACTION;
-        if (defined('DB_MYSQL_DEBUG')) $this->debug = DB_MYSQL_DEBUG;
-        if (defined('DB_MYSQL_ERROR_EXIT')) $this->error_exit = DB_MYSQL_ERROR_EXIT;
-        if (defined('DB_MYSQL_LOG_NAME')) $this->log_file = DB_MYSQL_LOG_NAME;
-        if (defined('DB_MYSQL_LOG_ALL')) $this->log_all = DB_MYSQL_LOG_ALL;
+        if (defined('\DB_MYSQL_HOST') && !$HOST) $this->db_host = \DB_MYSQL_HOST; elseif ($HOST) $this->db_host = $HOST;
+        if (defined('\DB_MYSQL_PORT') && !$PORT) $this->db_port = \DB_MYSQL_PORT; elseif ($PORT) $this->db_port = $PORT;
+        if (defined('\DB_MYSQL_NAME') && !$NAME) $this->db_name = \DB_MYSQL_NAME; elseif ($NAME) $this->db_name = $NAME;
+        if (defined('\DB_MYSQL_USER') && !$USER) $this->db_user = \DB_MYSQL_USER; elseif ($USER) $this->db_user = $USER;
+        if (defined('\DB_MYSQL_PASS') && !$PASS) $this->db_pass = \DB_MYSQL_PASS; elseif ($PASS) $this->db_pass = $PASS;
+        if (defined('\DB_MYSQL_STORAGE')) $this->db_storage = \DB_MYSQL_STORAGE;
+        if (defined('\DB_MYSQL_USE_TRANSACTION')) $this->use_transaction = \DB_MYSQL_USE_TRANSACTION;
+        if (defined('\DB_MYSQL_DEBUG')) $this->debug = \DB_MYSQL_DEBUG;
+        if (defined('\DB_MYSQL_ERROR_EXIT')) $this->error_exit = \DB_MYSQL_ERROR_EXIT;
+        if (defined('\DB_MYSQL_LOG_NAME')) $this->log_file = \DB_MYSQL_LOG_NAME;
+        if (defined('\DB_MYSQL_LOG_ALL')) $this->log_all = \DB_MYSQL_LOG_ALL;
         if (!function_exists('mysqli_connect')) {
             if ($this->log_all) $this->logs[] = "PHP MySQL not installed!";
-            $this->DB_Error("PHP MySQL not installed!", '__construct');
+            return $this->DB_Error("PHP MySQL not installed!", '__construct');
         }
         else if ($this->db_storage) $this->getConnect();
         return true;
@@ -123,7 +123,7 @@ class MySQL extends AbstractDB {
      *  Numeric:
      *      0 or '' - (selection: any number of rows and columns) expect an array of associative arrays ([] => array(field_name => value));
      *      1 - (selection: one row / one column) expect a row, if the selection yielded more than one column - returns an associative array (field_name => value), if more than one row - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
-     *      2 - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more thgan one column - an array of associative arrays ([] => array(field_name => value));
+     *      2 - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
      *      3 - (selection: multiple rows / one column) expect an associative array of arrays (field_name => array([] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
      *      4 - (selection: multiple rows / one column) expect an array of values ​[] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value)).
      *      5 - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
@@ -132,7 +132,7 @@ class MySQL extends AbstractDB {
      *  String (analogous to numeric):
      *      'all' or '' - (selection: any number of rows and columns) expect an array of associative arrays ([] => array(field_name => value));
      *      'one' - (selection: one row / one column) expect a row, if the selection yielded more than one column - returns an associative array (field_name => value), if more than one row - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
-     *      'row' - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more thgan one column - an array of associative arrays ([] => array(field_name => value));
+     *      'row' - (selection: one row / many columns) expect an associative array (field_name => value), if more than one row and one column - returns an array of values ​] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
      *      'column' - (selection: multiple rows / one column) expect an associative array of arrays (field_name => array([] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value));
      *      'col' - (selection: multiple rows / one column) expect an array of values ​[] => value), if more than one row and more than one column - an array of associative arrays ([] => array(field_name => value)).
      *      'dub' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
@@ -140,7 +140,7 @@ class MySQL extends AbstractDB {
      *      'explain' - return data on query execution EXPLAIN
      * @return array|bool|mysqli_result|string|string[]|null SQL query result
      */
-    public function getResults ($sql, $one=0) { // Set query results
+    public function getResults (string $sql, int $one = 0): array|bool {
         $one = parent::checkReturnType($one);
         if ($one === false) {
             $this->logs[] = "Wrong parameter ONE: ".$one;
@@ -153,11 +153,11 @@ class MySQL extends AbstractDB {
         $res = $this->query($sql, 1);
         if (!is_string($res) && is_object($res)) {
             $col_row = mysqli_num_rows($res);
-            if (!$col_row && $one != 1) return array();
+            if (!$col_row && $one != 1) return [];
             elseif (!$col_row && $one == 1) $result = '';
             elseif ($col_row == 1 && $one && $one < 3) {
                 $result = mysqli_fetch_assoc($res);
-                if (sizeof($result) == 1 && $one == 1) $result = join('',$result);
+                if (count($result) === 1 && $one === 1) $result = implode('',$result);
             }
             else $result = $this->res2array($res, $one);
         }
@@ -226,9 +226,9 @@ class MySQL extends AbstractDB {
         if (!$connected) return false;
         if (!$this->getDB()) return false;
         if (!is_string($sql) || !$sql || trim($sql) == '') return false;
-        $run_time = time();
+        $run_time = microtime(true);
         $res = @mysqli_query($this->db_connect, $sql);
-        $this->run_time = time() - $run_time;
+        $this->run_time = microtime(true) - $run_time;
         if ($res === false) {
             $message = "Could not query: $sql;";// Error message: ".mysqli_error($this->db_connect);
             $this->DB_Error($message, $code);
@@ -246,19 +246,19 @@ class MySQL extends AbstractDB {
      * @return array
      */
     private function res2array ($res, $one = 0) { // Get query results to array
-        $result = array();
+        $result = [];
         if (is_array($res)) return $res;
         if (is_resource($res) || is_object($res) || $this->use_transaction) {
             if ($this->use_transaction && !mysqli_num_rows ($res)) return $result;
             elseif (!$this->use_transaction && !mysqli_num_rows ($res)) return $result;
             while ($row = mysqli_fetch_assoc ($res)) {
-                if ($one && sizeof($row) == 1) {
+                if ($one && count($row) === 1) {
                     foreach ($row as $key=>$value) {
                         if ($one == 3) $result[$key][] = $value;
                         else $result[] = $value;
                     }
                 }
-                elseif ($one == 5 && sizeof($row) == 2) {
+                elseif ($one == 5 && count($row) === 2) {
                     $idx = 0;
                     $index = '';
                     $value = '';
@@ -297,7 +297,7 @@ class MySQL extends AbstractDB {
      * Set charset
      * @param string $charset - charset
      */
-    public function setCharset ($charset = 'utf8') {
+    public function setCharset (string $charset = 'utf8') {
         $mysql_ver = @mysqli_get_server_info($this->db_connect);
         $pref = preg_replace("/(\d{1,2}\.\d{1,2})\.(\d{1,3})(.+)/", "\\2", $mysql_ver);
         $mysql_ver = preg_replace("/(\d{1,2}\.\d{1,2})(.+)/", "\\1", $mysql_ver);
@@ -332,7 +332,7 @@ class MySQL extends AbstractDB {
      */
     public function getListFields($table) { // Get Fields from table
         $code = 'getListFields';
-        $name_field = array();
+        $name_field = [];
         if (!in_array($table, $this->db_Tables)) $this->getTableList();
         if (!in_array($table, $this->db_Tables)) {
             $this->DB_Error("Could not create List Fields: Table - $table not exists", $code);
@@ -509,7 +509,7 @@ class MySQL extends AbstractDB {
             $fileSQL = file_get_contents($SQLFile);
             $fileSQL = preg_split("/\n/", $fileSQL);
             $i = 0;
-            $SQL = array();
+            $SQL = [];
             foreach ($fileSQL as $n=>$line) {
                 if (!preg_match("/^--/", trim($line)) && trim($line)) {
                     $SQL[$i] = $line;
@@ -543,7 +543,7 @@ class MySQL extends AbstractDB {
      * @param array $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return mixed
      */
-    public function lastID ($table = '', $index = array()) {
+    public function lastID ($table = '', $index = []) {
         $code = 'lastID';
         if (!$table) {
             if (!$res = mysqli_insert_id($this->db_connect)) $res = $this->getResults("SELECT LAST_INSERT_ID() LIMIT 0,1", 1);
@@ -566,7 +566,7 @@ class MySQL extends AbstractDB {
                 }
                 if ($ind) $ind = "WHERE $ind";
                 $ind_full = $this->getResults("SHOW KEYS FROM $table");
-                $in = array();
+                $in = [];
                 foreach ($ind_full as $row) {
                     $in[] = $row['Column_name'];
                 }
@@ -574,7 +574,7 @@ class MySQL extends AbstractDB {
                     $str = implode(',', $in);
                     $res_str = $this->getResults("SELECT MAX(concat_ws(',', $str)) FROM $table $ind LIMIT 0,1", 1);
                     $in_spl = explode(',', $res_str);
-                    $res = array();
+                    $res = [];
                     foreach ($in as $k=>$v) $res[$v] = $in_spl[$k];
                 }
                 else $res = $this->getResults("SELECT $in[0] FROM $table $ind LIMIT 0,1", 1);

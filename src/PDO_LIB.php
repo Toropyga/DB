@@ -3,7 +3,7 @@
  * A generic class that uses the PDO library.
  * @author Yuri Frantsevich
  * Date: 16/09/2019
- * @version 1.0.2
+ * @version 1.0.3
  * @copyright 2019-2026
  */
 
@@ -69,12 +69,12 @@ class PDO_LIB extends AbstractDB {
      * List of fields in tables
      * @var array
      */
-    private $db_TableList = array();
+    private $db_TableList = [];
     /**
      * List of tables in DB
      * @var array
      */
-    private $db_Tables = array();
+    private $db_Tables = [];
     /**
      * DB connection status
      * @var bool
@@ -87,16 +87,16 @@ class PDO_LIB extends AbstractDB {
     private $pdo = '';
 
     public function __construct($db_type = false, $NAME = false, $USER = false, $PASS = false, $HOST = false, $PORT = false, $oracle_connect_type = false) {
-        if (defined('DB_PDO_TYPE') && !$db_type && in_array(DB_PDO_TYPE, $this->db_types)) $this->db_host = DB_PDO_TYPE;
+        if (defined('\DB_PDO_TYPE') && !$db_type && in_array(\DB_PDO_TYPE, $this->db_types)) $this->db_host = \DB_PDO_TYPE;
         elseif ($db_type && in_array($db_type, $this->db_types)) $this->db_type = $db_type;
-        if (defined('DB_PDO_HOST') && !$HOST) $this->db_host = DB_PDO_HOST; elseif ($HOST) $this->db_host = $HOST;
-        if (defined('DB_PDO_PORT') && !$PORT) $this->db_port = DB_PDO_PORT; elseif ($PORT) $this->db_port = $PORT;
-        if (defined('DB_PDO_NAME') && !$NAME) $this->db_name = DB_PDO_NAME; elseif ($NAME) $this->db_name = $NAME;
-        if (defined('DB_PDO_USER') && !$USER) $this->db_user = DB_PDO_USER; elseif ($USER) $this->db_user = $USER;
-        if (defined('DB_PDO_PASS') && !$PASS) $this->db_pass = DB_PDO_PASS; elseif ($PASS) $this->db_pass = $PASS;
-        if (defined('DB_PDO_DEBUG')) $this->debug = DB_PDO_DEBUG;
-        if (defined('DB_PDO_ERROR_EXIT')) $this->error_exit = DB_PDO_ERROR_EXIT;
-        if (defined("DB_PDO_ORACLE_CONNECT_TYPE")) $oracle_connect_type = DB_PDO_ORACLE_CONNECT_TYPE;
+        if (defined('\DB_PDO_HOST') && !$HOST) $this->db_host = \DB_PDO_HOST; elseif ($HOST) $this->db_host = $HOST;
+        if (defined('\DB_PDO_PORT') && !$PORT) $this->db_port = \DB_PDO_PORT; elseif ($PORT) $this->db_port = $PORT;
+        if (defined('\DB_PDO_NAME') && !$NAME) $this->db_name = \DB_PDO_NAME; elseif ($NAME) $this->db_name = $NAME;
+        if (defined('\DB_PDO_USER') && !$USER) $this->db_user = \DB_PDO_USER; elseif ($USER) $this->db_user = $USER;
+        if (defined('\DB_PDO_PASS') && !$PASS) $this->db_pass = \DB_PDO_PASS; elseif ($PASS) $this->db_pass = $PASS;
+        if (defined('\DB_PDO_DEBUG')) $this->debug = \DB_PDO_DEBUG;
+        if (defined('\DB_PDO_ERROR_EXIT')) $this->error_exit = \DB_PDO_ERROR_EXIT;
+        if (defined("\DB_PDO_ORACLE_CONNECT_TYPE")) $oracle_connect_type = \DB_PDO_ORACLE_CONNECT_TYPE;
         if (isset($oracle_connect_type) && $oracle_connect_type >= 0 && $oracle_connect_type <= 2) $this->setOracleConnectType($oracle_connect_type);
         $this->getConnect();
     }
@@ -134,17 +134,17 @@ class PDO_LIB extends AbstractDB {
      *
      * @return array|bool|string SQL query result
      */
-    public function getResults ($sql, $one=0) { // Get query results
+    public function getResults (string $sql, int $one = 0): array|bool {
         $this->query($sql);
         $one = parent::checkReturnType($one);
         if ($one === false) {
             $this->logs[] = "Wrong parameter ONE: ".$one;
             $one = 0;
         }
-        $result = array();
+        $result = [];
         if (is_object($this->pdo) && method_exists($this->pdo, 'columnCount')) {
             $col_count = $this->pdo->columnCount();
-            if (!$col_count && $one != 1) return array();
+            if (!$col_count && $one != 1) return [];
             elseif (!$col_count && $one == 1) $result = '';
             else $result = $this->res2array($one);
         }
@@ -157,7 +157,9 @@ class PDO_LIB extends AbstractDB {
      * @return array
      */
     private function res2array ($one = 0) { // Set query results to array
-        $result = array();
+        $result = [];
+        $res = [];
+        $row = [];
         if (is_object($this->pdo) && method_exists($this->pdo, 'columnCount') && method_exists($this->pdo, 'rowCount')) {
             $col_count = $this->pdo->columnCount();
             $row_count = $this->pdo->rowCount();
@@ -170,13 +172,13 @@ class PDO_LIB extends AbstractDB {
         elseif ($row_count == 1 && $one == 2) $result = $this->fetch(PDO::FETCH_ASSOC);
         elseif ($col_count && $one >= 3 && $one <= 5) {
             while ($row = $this->fetch(PDO::FETCH_ASSOC)) {
-                if ($one && (is_array($row) || is_object($row)) && sizeof($row) == 1) {
+                if ($one && (is_array($row) || is_object($row)) && count($row) === 1) {
                     foreach ($row as $key => $value) {
                         if ($one == 3) $result[$key][] = $value;
                         else $result[] = $value;
                     }
                 }
-                elseif ($one == 5 && sizeof($row) == 2) {
+                elseif ($one == 5 && count($row) === 2) {
                     $idx = 0;
                     $index = '';
                     $value = '';
@@ -192,7 +194,7 @@ class PDO_LIB extends AbstractDB {
         }
         elseif ($col_count == 2 && $one == 6) {
             //alternative data processing option (selection: many rows / 2 columns) taking into account duplicate keys and values
-            $keys = array();
+            $keys = [];
             $idx = 0;
             while ($row = $this->fetch(PDO::FETCH_NUM)) {
                 $key = $row[0];
@@ -209,7 +211,7 @@ class PDO_LIB extends AbstractDB {
                     else {
                         $value = $result[$key];
                         if ($value != $val) {
-                            $result[$key] = array();
+                            $result[$key] = [];
                             $result[$key][] = $value;
                             $result[$key][] = $val;
                         }
@@ -230,7 +232,7 @@ class PDO_LIB extends AbstractDB {
      * @param int $type
      */
     private function setOracleConnectType ($type = 0) {
-        if ($type != 1 || $type != 2) $this->oracle_connect_type = 0;
+        if ($type != 1 && $type != 2) $this->oracle_connect_type = 0;
         else $this->oracle_connect_type = $type;
     }
 
@@ -360,9 +362,9 @@ class PDO_LIB extends AbstractDB {
     public function query ($sql) {
         $code = 'query';
         try {
-            $run_time = time();
+            $run_time = microtime(true);
             $this->pdo = $this->db_connect->query($sql);
-            $this->run_time = time()-$run_time;
+            $this->run_time = microtime(true)-$run_time;
             if (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
         }
         catch (PDOException $e) {
@@ -421,27 +423,31 @@ class PDO_LIB extends AbstractDB {
      */
     public function getListFields($table) { // Get Fields from table
         $code = 'getListFields';
-        $name_field = array();
+        $name_field = [];
         if (!in_array($table, $this->db_Tables)) $this->getTableList();
         if (!in_array($table, $this->db_Tables)) {
             $this->DB_Error("Could not create List Fields: Table - $table not exists", $code);
             return false;
         }
         if (!isset($this->db_TableList[$table])) {
+            $table = $this->escapeString($table);
+            $field_key = 'Field';
             switch ($this->db_type) {
                 case 'odbc':
                 case 'pgsql':
                     $sql = "SELECT column_name FROM information_schema.columns WHERE table_name =  '$table'"; // pgsql
+                    $field_key = 'column_name';
                     break;
                 case 'oci':
                     $sql = "SELECT column_name FROM user_tab_cols WHERE table_name = '$table'"; // oracle
+                    $field_key = 'column_name';
                     break;
                 case 'mysql':
                 default:
                     $sql = "SHOW COLUMNS FROM $table"; // mysql
             }
             $fields = $this->getResults($sql, 4);
-            foreach ($fields as $key=>$value) $name_field[] = $value['Field'];
+            foreach ($fields as $key=>$value) $name_field[] = $value[$field_key];
             $this->db_TableList[$table]=$name_field;
         }
         else {
@@ -527,7 +533,7 @@ class PDO_LIB extends AbstractDB {
         }
         elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
         $fields = '';
-        $val = array();
+        $val = [];
         foreach ($values as $key => $value) {
             if (in_array($key,$tab_fields)) {
                 if (is_array($value)) $value = json_encode($value);
@@ -617,7 +623,7 @@ class PDO_LIB extends AbstractDB {
         $code = 'setDelete';
         if (!$tab_fields = $this->getListFields($table)) return false;
         $ind = '';
-        $val = array();
+        $val = [];
         if ($index) {
             if (!is_array($index)) {
                 $this->DB_Error("Could not create delete query: Error keys - $index (not array)");
@@ -702,7 +708,7 @@ class PDO_LIB extends AbstractDB {
             if (method_exists($this->db_connect, 'errorInfo')) $message_bd = htmlentities($this->db_connect->errorInfo());
         }
         if (!$message_bd && is_object($pdo) && method_exists($pdo, 'errorInfo')) $message_bd = $pdo->errorInfo();
-        elseif (!$message_bd && method_exists($this->pdo, 'errorInfo')) $message_bd = $this->pdo->errorInfo();
+        elseif (!$message_bd && is_object($this->pdo) && method_exists($this->pdo, 'errorInfo')) $message_bd = $this->pdo->errorInfo();
         if (is_array($message_bd)) $message_bd = $message_bd[2];
         list($mess) = preg_split("/:/", $message);
         $query = htmlentities(trim(strtr($message, array($mess.":"=>''))));
@@ -724,11 +730,14 @@ class PDO_LIB extends AbstractDB {
             case 'odbc':
             case 'oci':
                 $string = $this->db_connect->quote($string);
+                break;
             case 'pgsql':
                 $string = pg_escape_string($string);
+                break;
             case 'mysql':
             default:
                 $string = $this->db_connect->real_escape_string($string);
+                break;
         }
         return $string;
     }

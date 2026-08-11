@@ -300,7 +300,7 @@ class PDO_LIB extends AbstractDB {
 
     /**
      * Executing a previously prepared query
-     * @param $values - values ​​substituted into the prepared query
+     * @param mixed $values - values ​​substituted into the prepared query
      * @param mixed $pdo - PDO module object from prepare function
      * @return bool
      */
@@ -334,7 +334,7 @@ class PDO_LIB extends AbstractDB {
      * Row-by-row data extraction
      * @param string $mode - sampling parameters
      * @param mixed $pdo - PDO module object from prepare or query function
-     * @return bool
+     * @return mixed
      */
     public function fetch ($mode = '', $pdo = '') {
         if (is_object($pdo) && method_exists($pdo, 'fetch')) return $pdo->fetch($mode);

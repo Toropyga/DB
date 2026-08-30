@@ -4,7 +4,7 @@
  * Class for working with MySQL database
  * @author Yuri Frantsevich
  * Date: 15/04/2005
- * @version 6.0.3
+ * @version 6.0.4
  * @copyright 2005-2026
  */
 
@@ -138,9 +138,9 @@ class MySQL extends AbstractDB {
      *      'dub' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
      *      'dub_all' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2), if [value of field 1] is repeated, the array becomes [value of field 1] => array([0] => value of field 2, [1] => field value 2...)
      *      'explain' - return data on query execution EXPLAIN
-     * @return array|bool|mysqli_result|string|string[]|null SQL query result
+     * @return mixed SQL query result
      */
-    public function getResults (string $sql, int $one = 0): array|bool {
+    public function getResults (string $sql, int $one = 0): mixed {
         $one = parent::checkReturnType($one);
         if ($one === false) {
             $this->logs[] = "Wrong parameter ONE: ".$one;

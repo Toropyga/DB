@@ -3,7 +3,7 @@
  * A generic class that uses the PDO library.
  * @author Yuri Frantsevich
  * Date: 16/09/2019
- * @version 1.0.3
+ * @version 1.0.4
  * @copyright 2019-2026
  */
 
@@ -132,9 +132,9 @@ class PDO_LIB extends AbstractDB {
      *      'dub' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
      *      'dub_all' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2), if [value of field 1] is repeated, the array becomes [value of field 1] => array([0] => value of field 2, [1] => field value 2...)
      *
-     * @return array|bool|string SQL query result
+     * @return mixed SQL query result
      */
-    public function getResults (string $sql, int $one = 0): array|bool {
+    public function getResults (string $sql, int $one = 0): mixed {
         $this->query($sql);
         $one = parent::checkReturnType($one);
         if ($one === false) {

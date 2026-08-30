@@ -3,7 +3,7 @@
 /**
  * Class for working with Oracle database
  * @author Yuri Frantsevich
- * @version 2.0.3
+ * @version 2.0.4
  * @copyright 2025
  */
 
@@ -157,7 +157,7 @@ class Oracle extends AbstractDB {
      *      'dub' - (selection: multiple rows / 2 columns) expect an array of values ​value of field 1] => value of field 2)
      * @return mixed SQL query result
      */
-    public function getResults (string $sql, int $one = 0): array|bool {
+    public function getResults (string $sql, int $one = 0): mixed {
         if (!$this->status) {
             if ($this->oracle_config['p_connect']) return false;
             else $this->getOracle();

@@ -2,7 +2,7 @@
 /**
  * DB.
  * @author Yuri Frantsevich
- * @version 2.0.3
+ * @version 2.0.4
  * @copyright 2025
  */
 

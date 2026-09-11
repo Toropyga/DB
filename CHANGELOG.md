@@ -1,0 +1,44 @@
+# Changelog
+
+All notable changes to this project are documented here.
+
+## [Unreleased]
+
+### Added
+
+- Added `DatabaseAdapterInterface` as the common adapter contract.
+- Added `DatabaseException` for database failures when error-exit mode is enabled.
+- Added the temporary `PDO_LIB extends PDOLIB` compatibility wrapper for v2.x applications.
+- Added the PHP and extension support matrix to the README files.
+
+### Changed
+
+- Moved shared identifier validation, error sanitization, and error handling into `AbstractDB`.
+- Separated parameterized execution from SQL text generation.
+- MySQL `setInsert()`, `setUpdate()`, and `setDelete()` now use bound parameters.
+- Database errors are logged without rendering HTML or terminating the process with `exit`.
+- Full SQL statements and bound values are no longer written to logs.
+- `Oracle::getTableList()` and `Oracle::getListFields()` are available as public Oracle metadata methods.
+- Cleaned up source comments and documented the `PDO_LIB` to `PDOLIB` migration.
+- Oracle normal SELECT statements now use the parsed statement directly; cursors are created only for `:res` output cursors.
+- PDOLIB metadata lookup now handles scalar column-list results and failed metadata queries safely.
+- PDOLIB clears stale statements and rejects query/prepare calls without an active PDO connection.
+- PDOLIB SQL builders quote field identifiers according to the selected driver.
+
+### Security
+
+- Removed the MySQL fallback that interpolated values into SQL when `mysqlnd` was unavailable.
+- Added validation for dynamic table and column identifiers.
+- Sanitized SQL text from database error messages before it is stored in logs.
+- Fixed OCI error handling so structured `oci_error()` results are converted to messages without type errors or SQL leakage.
+
+## [3.0.0]
+
+### Changed
+
+- Preferred PDO adapter name is `PDOLIB`.
+- `PDO_LIB` remains available as a temporary compatibility wrapper.
+- Minimum supported PHP version is 8.1.
+
+[Unreleased]: https://github.com/Toropyga/DB/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/Toropyga/DB/releases/tag/v3.0.0

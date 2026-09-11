@@ -2,13 +2,13 @@
 /**
  * DB.
  * @author Yuri Frantsevich
- * @version 2.0.4
+ * @version 2.1.0
  * @copyright 2025
  */
 
 namespace Toropyga\DB;
 
-class AbstractDB {
+abstract class AbstractDB implements DatabaseAdapterInterface {
     /**
      * Логи
      * @var array
@@ -22,21 +22,21 @@ class AbstractDB {
 
     /**
      * Query execution time
-     * @var int
+    * @var float
      */
-    public $run_time = 0;
+    public $run_time = 0.0;
 
     /**
      * Enable or disable debugging features
      * @var bool
      */
-    protected $debug = false; //Show error on Site
+    protected $debug = false;
 
     /**
      * Terminate the program if an error occurs
      * @var bool
      */
-    protected $error_exit = false; //Exit if script contain error
+    protected $error_exit = false;
 
     /**
      * Sign of error
@@ -84,7 +84,7 @@ class AbstractDB {
 
     /**
      * Return the execution time of the last SQL query
-     * @return int
+    * @return float
      */
     public function getRunTime () {
         return $this->run_time;
@@ -107,56 +107,116 @@ class AbstractDB {
             elseif ($one == 'explain') $one = 7;
             else return false;
         }
-        if ($one > 7 || $one < 0) return false;
+        if (!is_int($one) || $one > 7 || $one < 0) return false;
         return $one;
     }
 
     /**
+     * Validate and quote a table or column identifier.
+     * Values must never be passed through this method; use bound parameters.
+     * @param string $identifier
+     * @param string $quote
+     * @return string
+     */
+    protected function quoteIdentifier (string $identifier, string $quote = '"'): string {
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_$]*$/', $identifier)) {
+            throw new \InvalidArgumentException('Invalid database identifier.');
+        }
+        return $quote.$identifier.$quote;
+    }
+
+    protected function validateIdentifier (string $identifier): string {
+        $this->quoteIdentifier($identifier);
+        return $identifier;
+    }
+
+    /**
+     * Remove SQL text from messages before they are retained in logs.
+     * @param string $message
+     * @return string
+     */
+    protected function sanitizeErrorMessage (string $message): string {
+        $message = preg_replace('/(?:Could not (?:query|prepare):|QUERY:|SQL\s*=).*/i', 'Database operation failed.', $message);
+        return trim((string) $message);
+    }
+
+    /**
      * Error handling.
-     * Output to screen, save to error variable.
+     * Save a sanitized message to the internal log and optionally throw.
      * @param string $message - error message
      * @param string $lib_name - class name
      * @return bool
      */
     protected function Error ($message='', $lib_name = 'AbstractDB') {
         $this->error = true;
-        $ip = $this->getIP();
-        if (!defined("WWW_PATH")) define("WWW_PATH", $_SERVER['SERVER_NAME']);
-        $server_ip = implode("/", $ip);
-        $ref = (isset($_SERVER['HTTP_REFERER']))?$_SERVER['HTTP_REFERER']:'-';
-        $err = "Critical Database Error from $lib_name (".WWW_PATH.") \nLink error: ".$_SERVER['REQUEST_URI']."\nReferer: ".$ref."\nServer IP: ".$server_ip."\n".$message;
+        $context = $this->buildErrorContext();
+        $server = $context['server'];
+        $message = $this->sanitizeErrorMessage((string) $message);
+        $err = "Database error from $lib_name (".$server.") \nLink error: ".$context['request_uri']."\nReferer: ".$context['referer']."\nServer IP: ".$context['server_ip']."\n".$message;
         $this->logs[] = preg_replace("/\n/", ' :: ', $err);
-        $error = '<br><span style="color: #FF0000"><b>Critical Database Error from '.$lib_name.' ('.WWW_PATH.') '.date('d-m-Y H:i:s').'</b></span><br>';
-        $error .= "<b>Link error:</b> ".$_SERVER['REQUEST_URI']."<br>";
-        $error .= "<b>Referer:</b> ".$ref."<br>";
-        $error .= "<b>Server IP:</b> ".$server_ip."<br>";
-        $error .= '<span style="color: #008000">'.htmlentities($message).':</span> ';
-        if ($this->debug) {
-            header("Access-Control-Allow-Origin: *");
-            header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-            header("Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token");
-            header("X-XSS-Protection: 1; mode=block");
-            header("X-Content-Type-Options: nosniff");
-            header("X-Frame-Options: DENY");
-            header("Content-Security-Policy: frame-ancestors 'self'");
-            header("Content-Type: text/html; charset=utf-8");
-            echo $error;
-        }
+        if ($this->error_exit) throw new DatabaseException($message ?: 'Database operation failed.');
         return true;
+    }
+
+    /**
+     * Build request metadata used in error reporting.
+     * Keeps HTTP-specific access isolated from the database logic.
+     * @return array{server:string, request_uri:string, referer:string, server_ip:string}
+     */
+    protected function buildErrorContext () {
+        $ip = $this->getIP();
+        return [
+            'server' => $this->getServerName(),
+            'request_uri' => $this->getRequestUri(),
+            'referer' => $this->getReferer(),
+            'server_ip' => implode('/', $ip),
+        ];
+    }
+
+    /**
+     * Return a safe server name for CLI/test contexts.
+     * @return string
+     */
+    protected function getServerName () {
+        return $_SERVER['SERVER_NAME'] ?? 'CLI';
+    }
+
+    /**
+     * Return a safe request URI for CLI/test contexts.
+     * @return string
+     */
+    protected function getRequestUri () {
+        return $_SERVER['REQUEST_URI'] ?? '-';
+    }
+
+    /**
+     * Return HTTP Referer when present.
+     * @return string
+     */
+    protected function getReferer () {
+        return $_SERVER['HTTP_REFERER'] ?? '-';
     }
 
     /**
      * Logs return
      * @param string $type - тType of returned data: all - all (default), log - array of logs, file - name of log file, last - last line of logs
-     * @return array|string
+     * @return array|string|null
      */
     public function getLogs ($type = 'all') {
         if ($type == 'log') return $this->logs;
         elseif ($type == 'file') return $this->log_file;
-        elseif ($type == 'last') return array_pop($this->logs);
+        elseif ($type == 'last') return $this->logs ? $this->logs[array_key_last($this->logs)] : null;
         $return['log'] = $this->logs;
         $return['file'] = $this->log_file;
         return $return;
+    }
+
+    /**
+     * Returns the error code
+     * @return array
+     */
+    public function getErrorCode () {
+        return $this->error_code;
     }
 
     /**
@@ -164,19 +224,24 @@ class AbstractDB {
      * @return array
      */
     private function getIP () {
-        $ipn = (isset($_SERVER['REMOTE_ADDR']))?$_SERVER['REMOTE_ADDR']:'';
-        if (!$ipn) $ipn = urldecode(getenv('HTTP_CLIENT_IP'));
-        if (getenv('HTTP_X_FORWARDED_FOR') && strcasecmp(getenv("HTTP_X_FORWARDED_FOR"), "unknown")) $strIP = getenv('HTTP_X_FORWARDED_FOR');
-        elseif (getenv('HTTP_X_FORWARDED') && strcasecmp(getenv("HTTP_X_FORWARDED"), "unknown")) $strIP = getenv('HTTP_X_FORWARDED');
-        elseif (getenv('HTTP_FORWARDED_FOR') && strcasecmp(getenv("HTTP_FORWARDED_FOR"), "unknown")) $strIP = getenv('HTTP_FORWARDED_FOR');
-        elseif (getenv('HTTP_FORWARDED') && strcasecmp(getenv("HTTP_FORWARDED"), "unknown")) $strIP = getenv('HTTP_FORWARDED');
-        else $strIP = (isset($_SERVER['REMOTE_ADDR']))?$_SERVER['REMOTE_ADDR']:'127.0.0.1';
+        $ipn = $_SERVER['REMOTE_ADDR'] ?? '';
+        if (!$ipn) $ipn = urldecode((string) getenv('HTTP_CLIENT_IP'));
+        $forwardedFor = getenv('HTTP_X_FORWARDED_FOR');
+        $forwarded = getenv('HTTP_X_FORWARDED');
+        $forwardedForAlt = getenv('HTTP_FORWARDED_FOR');
+        $forwardedAlt = getenv('HTTP_FORWARDED');
+        if ($forwardedFor && strcasecmp((string) $forwardedFor, 'unknown')) $strIP = $forwardedFor;
+        elseif ($forwarded && strcasecmp((string) $forwarded, 'unknown')) $strIP = $forwarded;
+        elseif ($forwardedForAlt && strcasecmp((string) $forwardedForAlt, 'unknown')) $strIP = $forwardedForAlt;
+        elseif ($forwardedAlt && strcasecmp((string) $forwardedAlt, 'unknown')) $strIP = $forwardedAlt;
+        else $strIP = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
         if ($ipn == '::1') $ipn = '127.0.0.1';
         if ($strIP == '::1') $strIP = '127.0.0.1';
-        if (!preg_match("/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/", $ipn)) $ipn = '';
-        if (!preg_match("/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/", $strIP)) $strIP = $ipn;
-        if ($ipn) $ipn = filter_var($ipn, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
-        if ($strIP) $strIP = filter_var($strIP, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        $strIP = trim(explode(',', (string) $strIP, 2)[0]);
+        // Keep private and loopback addresses: they are useful in local and
+        // containerized deployments.
+        $ipn = filter_var($ipn, FILTER_VALIDATE_IP) ?: '';
+        $strIP = filter_var($strIP, FILTER_VALIDATE_IP) ?: $ipn;
         $ip = [];
         if ($strIP) {
             if ($strIP != $ipn) {

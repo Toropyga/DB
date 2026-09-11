@@ -3,17 +3,23 @@
 Классы для работы с базами данных
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v2.0.4-blue.svg)
-![PHP](https://img.shields.io/badge/php-v5.1_--_v8-blueviolet.svg)
+![Version](https://img.shields.io/badge/version-v3.0.0-blue.svg)
+![PHP](https://img.shields.io/badge/php-v8-blueviolet.svg)
+
+> Предпочтительное имя PDO-адаптера — `PDOLIB`. Для перехода с v2.x временно
+> доступен совместимый класс-обертка `PDO_LIB extends PDOLIB`; в новом коде
+> используйте `Toropyga\DB\PDOLIB`.
 
 ## Содержание
 
 - [Общее описание](#Общее-описание)
+- [История изменений](#История-изменений)
 - [Установка](#Установка)
+- [Требования](#Требования)
 - [Настройка](#Настройка)
     - [Настроечные константы MySQL](#Настроечные-константы-MySQL)
     - [Настроечные константы ORACLE](#Настроечные-константы-ORACLE)
-    - [Настроечные константы PDO_LIB](#Настроечные-константы-PDO_LIB)
+    - [Настроечные константы PDOLIB](#Настроечные-константы-PDOLIB)
 - [Описание работы](#описание-работы)
     - [Подключение файла класса](#Подключение-файла-класса)
     - [Инициализация классов](#Инициализация-классов)
@@ -27,9 +33,25 @@
 
 1. MySQL - класс для работы с БД MySQL.
 2. Oracle - класс для работы с БД Oracle.
-3. PDO_LIB - универсальный класс, использующий библиотеку PDO.
+3. PDOLIB - универсальный класс, использующий библиотеку PDO.
 
 Функции во всех библиотеках стандартизованы.
+
+История релизов и текущих изменений приведена в [CHANGELOG.md](CHANGELOG.md).
+
+## История изменений
+
+Подробная история релизов находится в [CHANGELOG.md](CHANGELOG.md).
+
+Все адаптеры реализуют `DatabaseAdapterInterface`. Для пользовательских
+значений используйте `getQuery()` или методы выполнения с prepared statements.
+Методы `getInsertSQL()`, `getUpdateSQL()` и `getDeleteSQL()` только формируют
+текст SQL для просмотра или передачи во внешние инструменты.
+
+Ошибки записываются во внутренний лог адаптера. При включении параметра
+`*_ERROR_EXIT` или вызове `setErrorExit(true)` выбрасывается
+`DatabaseException`; приложение не завершается через `exit`, и HTML-ошибка
+не выводится.
 
 ## Установка
 
@@ -39,13 +61,41 @@
 composer require toropyga/db
 ```
 
+## Требования
+
+- PHP 8.1 или новее.
+- `ext-pdo` для `PDOLIB`.
+- `ext-mysqli` для `MySQL`.
+- `ext-oci8` для `Oracle` и PDO-подключений к Oracle.
+- `ext-json`, если массивы передаются как значения SQL.
+
+Подключайте только расширения, необходимые используемому адаптеру.
+
+### Матрица поддержки
+
+Версия PHP соответствует заявлению в `composer.json`. Для PDO требуются
+`ext-pdo` и соответствующий драйвер.
+
+| Адаптер / драйвер | PHP 8.1+ | Требуемые расширения | Статус |
+| --- | --- | --- | --- |
+| `MySQL` | Да | `ext-mysqli` | Заявленная поддержка |
+| `Oracle` | Да | `ext-oci8` | Заявленная поддержка |
+| `PDOLIB` + `mysql` | Да | `ext-pdo`, `ext-pdo_mysql` | Заявленная поддержка |
+| `PDOLIB` + `pgsql` | Да | `ext-pdo`, `ext-pdo_pgsql` | Заявленная поддержка |
+| `PDOLIB` + `oci` | Да | `ext-pdo`, `ext-pdo_oci` | Заявленная поддержка |
+| `PDOLIB` + `odbc` | Да | `ext-pdo`, `ext-pdo_odbc` | Заявленная поддержка |
+| JSON-значения массивов | Да | `ext-json` | Нужно только при кодировании массивов |
+
+Матрица описывает совместимость по конфигурации проекта, но не заменяет
+интеграционные тесты с конкретными версиями серверов и драйверов БД.
+
 ## Настройка
 Предварительная настройка параметров по умолчанию может осуществляться или непосредственно в самом классе, или с помощью именованных констант.
 Именованные константы при необходимости объявляются до вызова класса, например, в конфигурационном файле, и определяют параметры по умолчанию
 
 ### Настроечные константы MySQL
 ```php
-const DB_MYSQL_HOST;                // Имя/адрес сервера БД
+const DB_MYSQL_HOST = '127.0.0.1';  // Имя/адрес сервера БД
 const DB_MYSQL_PORT;                // Порт сервера
 const DB_MYSQL_NAME;                // Имя базы данных
 const DB_MYSQL_USER;                // Имя пользователя
@@ -53,13 +103,13 @@ const DB_MYSQL_PASS;                // Пароль пользователя
 const DB_MYSQL_STORAGE;             // Сохранять подключение на весь сеанс или подключаться при каждом SQL-запросе
 const DB_MYSQL_USE_TRANSACTION;     // Использовать постоянное подключение
 const DB_MYSQL_DEBUG;               // Включить или отключить отладочные функции
-const DB_MYSQL_ERROR_EXIT;          // Завершить ли работу программы при ошибке
+const DB_MYSQL_ERROR_EXIT;          // Выбрасывать DatabaseException при ошибке
 const DB_MYSQL_LOG_NAME;            // Имя файла логов
 const DB_MYSQL_LOG_ALL;             // Записывать в лог все действия (true) или только ошибки (false)
 ```
 ### Настроечные константы ORACLE
 ```php
-const DB_ORACLE_HOST;               // Имя/адрес сервера БД
+const DB_ORACLE_HOST = 'db.example'; // Имя/адрес сервера БД
 const DB_ORACLE_PORT;               // Порт сервера Oracle
 const DB_ORACLE_NAME;               // Имя базы данных
 const DB_ORACLE_USER;               // Имя пользователя
@@ -67,7 +117,7 @@ const DB_ORACLE_PASS;               // Пароль пользователя
 const DB_ORACLE_STORAGE;            // Сохранять подключение на весь сеанс или подключаться при каждом SQL-запросе
 const DB_ORACLE_CHARSET;            // Кодировка
 const DB_ORACLE_DEBUG;              // Включить или отключить отладочные функции
-const DB_ORACLE_ERROR_EXIT;         // Завершить ли работу программы при ошибке
+const DB_ORACLE_ERROR_EXIT;         // Выбрасывать DatabaseException при ошибке
 const DB_ORACLE_LOG_NAME;           // Имя файла логов
 const DB_ORACLE_LOG_ALL;            // Записывать в лог все действия (true) или только ошибки (false)
 const DB_ORACLE_USE_HOST;           // Тип используемой записи для подключения к Oracle (принимает значение 0, 1 или 2), оптимально 2:
@@ -75,16 +125,16 @@ const DB_ORACLE_USE_HOST;           // Тип используемой запи�
                                     //  1 - используется хост и имя базы данных
                                     //  2 - используется полная запись для подключения
 ```
-### Настроечные константы PDO_LIB
+### Настроечные константы PDOLIB
 ```php
-const DB_PDO_TYPE;                  // Тип БД ['mysql', 'pgsql', 'oci', 'odbc']
+const DB_PDO_TYPE = 'mysql';        // Тип БД ['mysql', 'pgsql', 'oci', 'odbc']
 const DB_PDO_HOST;                  // Имя/адрес сервера БД
 const DB_PDO_PORT;                  // Порт сервера
 const DB_PDO_NAME;                  // Имя базы данных
 const DB_PDO_USER;                  // Имя пользователя
 const DB_PDO_PASS;                  // Пароль пользователя
 const DB_PDO_DEBUG;                 // Включить или отключить отладочные функции
-const DB_PDO_ERROR_EXIT;            // Завершить ли работу программы при ошибке
+const DB_PDO_ERROR_EXIT;            // Выбрасывать DatabaseException при ошибке
 const DB_PDO_ORACLE_CONNECT_TYPE;   // Тип используемой записи для подключения к Oracle (принимает значение 0, 1 или 2), оптимально 2:
                                     //  0 - используется только имя базы данных
                                     //  1 - используется хост и имя базы данных
@@ -102,7 +152,7 @@ require_once("vendor/autoload.php");
 ```php
 $MYSQL = new Toropyga\DB\MySQL();
 $ORACLE = new Toropyga\DB\Oracle();
-$PDO = new Toropyga\DB\PDO_LIB();
+$PDO = new Toropyga\DB\PDOLIB();
 ```
 или
 ```php
@@ -132,19 +182,19 @@ $MYSQL = new Toropyga\DB\MySQL($HOST, $PORT, $NAME, $USER, $PASS);
 $ORACLE = new Toropyga\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CONNECT, $CHARSET, $no_connect);
 
 /**
- * PDO_LIB constructor.
+ * PDOLIB constructor.
  * @param string $db_type - тип БД ['mysql', 'pgsql', 'oci', 'odbc']
- * @param string $HOST - сервер
  * @param string $NAME - имя базы данных
  * @param string $USER - пользователь
  * @param string $PASS - пароль
+ * @param string $HOST - сервер
  * @param string $PORT - порт
  * @param string $oracle_connect_type - Тип используемой записи для подключения к Oracle:
  *      0 - используется только имя базы данных
  *      1 - используется хост и имя базы данных
  *      2 - используется полная запись для подключения
  */
-$PDO = new Toropyga\DB\PDO_LIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $oracle_connect_type);
+$PDO = new Toropyga\DB\PDOLIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $oracle_connect_type);
 ```
 ---
 ### Получение списка таблиц
@@ -160,22 +210,39 @@ $array = array('field1'=>'value1', 'field2'=>'value2', 'field3'=>'value3');
 $index = array('field_where1'=>'value_where1', 'field_where2'=>'value_where2');
 $sql_insert1 = $MYSQL->getInsertSQL('table_name', $array);
 $sql_update1 = $MYSQL->getUpdateSQL('table_name', $array, $index);
-$sql_delete1 = $MYSQL->getDeleteSQL('table_name', $array, $index);
+$sql_delete1 = $MYSQL->getDeleteSQL('table_name', $index);
 
 $sql_insert2 = $ORACLE->getInsertSQL('table_name', $array);
 $sql_update2 = $ORACLE->getUpdateSQL('table_name', $array, $index);
-$sql_delete2 = $ORACLE->getDeleteSQL('table_name', $array, $index);
+$sql_delete2 = $ORACLE->getDeleteSQL('table_name', $index);
 
 $sql_insert3 = $PDO->getInsertSQL('table_name', $array);
 $sql_update3 = $PDO->getUpdateSQL('table_name', $array, $index);
-$sql_delete3 = $PDO->getDeleteSQL('table_name', $array, $index);
+$sql_delete3 = $PDO->getDeleteSQL('table_name', $index);
 ```
 ### Отправка запроса
 ```php
-$result1 = $MYSQL->getResult($sql, $one);
-$result2 = $ORACLE->getResult($sql, $one);
-$result3 = $PDO->getResult($sql, $one);
+$result1 = $MYSQL->getResults($sql, $one);
+$result2 = $ORACLE->getResults($sql, $one);
+$result3 = $PDO->getResults($sql, $one);
 ```
+
+Для параметризованных SELECT-запросов используйте `getQuery()`, а не
+конкатенацию пользовательских значений со строкой SQL. Адаптер применяет
+настоящие связанные параметры:
+
+```php
+$users = $PDO->getQuery(
+    'SELECT id, name FROM users WHERE status = :status',
+    ['status' => 'active'],
+    'all'
+);
+```
+
+Методы `getInsertSQL()`, `getUpdateSQL()`, `getDeleteSQL()` и `getQuerySQL()`
+формируют текст SQL для просмотра или журналирования. Для пользовательских
+значений предпочтительны методы выполнения со связанными параметрами:
+`getQuery()`, `prepare()` и `execute()`.
 Где:
 * **$sql** - SQL запрос к БД
 * **$one** - как вернуть результат 
@@ -190,7 +257,7 @@ $result3 = $PDO->getResult($sql, $one);
 * 4 - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
 * 5 - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
 * 6 - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2), если [значение поля 1] повторяется, то массив принимает вид [значение поля 1] => array([0] => значение поля 2, [1] => значение поля 2...)
-* 7 - возврат данных по выполнению запроса EXPLAIN
+* 7 - возврат данных о плане выполнения запроса (EXPLAIN)
 
 Строковые (аналог числовых):
 * 'all' или '' - (выборка: любое количество строк и столбцов) ожидаем массив ассоциативных массивов ([] => array(имя_поля => значение));
@@ -200,9 +267,34 @@ $result3 = $PDO->getResult($sql, $one);
 * 'col' - (выборка: множество строк / один столбец) ожидаем массив значений ([] => значение), если более одной строки и более одного столбца - массив ассоциативных массивов ([] => array(имя_поля => значение)).
 * 'dub' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2)
 * 'dub_all' - (выборка: множество строк / 2 столбца) ожидаем массив значений ([значение поля 1] => значение поля 2), если [значение поля 1] повторяется, то массив принимает вид [значение поля 1] => array([0] => значение поля 2, [1] => значение поля 2...)
-* 'explain' - возврат данных по выполнению запроса EXPLAIN
+* 'explain' - возврат данных о плане выполнения запроса (EXPLAIN)
 ```
+
+Режимы `6`/`'dub_all'` и `7`/`'explain'` поддерживаются во всех трёх классах, с одним исключением:
+
+* У **`Oracle`** нет однострочного `EXPLAIN`. Режим `7`/`'explain'` под капотом
+  выполняет `EXPLAIN PLAN FOR <sql>`, а затем `SELECT ... FROM TABLE(DBMS_XPLAN.DISPLAY())`,
+  и возвращает отформатированный план в виде плоского массива текстовых строк
+  (а не структурированный по строкам результат, как остальные числовые режимы).
+* **`PDOLIB`** ведёт себя так же для типа драйвера `oci`. Для `mysql` и `pgsql`
+  запрос просто выполняется с префиксом `EXPLAIN `. Для типа драйвера `odbc`
+  режим `'explain'` **не поддерживается** — единого синтаксиса `EXPLAIN`,
+  переносимого между разными ODBC-бэкендами, не существует — при вызове в лог
+  записывается сообщение и возвращается пустой массив вместо отправки
+  непредсказуемого SQL в базу данных.
+
 А также можно выполнить запрос без обработки результата (UPDATE, INSERT и т.д.):
 ```php
 $MYSQL->query($sql);
 ```
+
+Для Oracle обычные SELECT-запросы выполняются через разобранный statement.
+Вызывайте `setCursor(true)` только для PL/SQL-запросов с OUT-cursor, например
+с параметром `:res`; для обычного SELECT режим cursor не требуется.
+
+`getListFields()` возвращает список имен столбцов. При ошибке получения
+метаданных возвращается `false`, а старый prepared statement или подключение
+не переиспользуются.
+
+Для условий используйте значения `NULL` и `NOT NULL`, чтобы получить
+`IS NULL` и `IS NOT NULL`, например: `['deleted_at' => 'NULL']`.

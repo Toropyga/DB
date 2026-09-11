@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Class for working with MySQL database
  * @author Yuri Frantsevich
- * Date: 15/04/2005
- * @version 6.0.4
+ * @version 3.0.0
  * @copyright 2005-2026
  */
 
@@ -18,27 +19,27 @@ class MySQL extends AbstractDB {
      * Host name or address
      * @var string
      */
-    private $db_host; //Host name
+    private $db_host;
     /**
      * Port
      * @var integer
      */
-    private $db_port; //Port number
+    private $db_port;
     /**
      * DB name
      * @var string
      */
-    private $db_name; //Database name
+    private $db_name;
     /**
      * User name
      * @var string
      */
-    private $db_user; //User name
+    private $db_user;
     /**
      * User password
      * @var string
      */
-    private $db_pass; //User password
+    private $db_pass;
     /**
      * Log all actions (true) or only errors (false)
      * @var bool
@@ -98,7 +99,7 @@ class MySQL extends AbstractDB {
         if (defined('\DB_MYSQL_LOG_ALL')) $this->log_all = \DB_MYSQL_LOG_ALL;
         if (!function_exists('mysqli_connect')) {
             if ($this->log_all) $this->logs[] = "PHP MySQL not installed!";
-            return $this->DB_Error("PHP MySQL not installed!", '__construct');
+            return $this->DBError("PHP MySQL not installed!", '__construct');
         }
         else if ($this->db_storage) $this->getConnect();
         return true;
@@ -140,7 +141,7 @@ class MySQL extends AbstractDB {
      *      'explain' - return data on query execution EXPLAIN
      * @return mixed SQL query result
      */
-    public function getResults (string $sql, int $one = 0): mixed {
+    public function getResults (string $sql, int|string $one = 0): mixed {
         $one = parent::checkReturnType($one);
         if ($one === false) {
             $this->logs[] = "Wrong parameter ONE: ".$one;
@@ -151,34 +152,165 @@ class MySQL extends AbstractDB {
             $one = 2;
         }
         $res = $this->query($sql, 1);
-        if (!is_string($res) && is_object($res)) {
-            $col_row = mysqli_num_rows($res);
-            if (!$col_row && $one != 1) return [];
-            elseif (!$col_row && $one == 1) $result = '';
-            elseif ($col_row == 1 && $one && $one < 3) {
-                $result = mysqli_fetch_assoc($res);
-                if (count($result) === 1 && $one === 1) $result = implode('',$result);
-            }
-            else $result = $this->res2array($res, $one);
-        }
-        else $result = $res;
+        $result = $this->processQueryResult($res, $one);
         if (!$this->db_storage) $this->getClose();
         return $result;
+    }
+
+    /**
+     * Turn a raw mysqli_result (or boolean) into the shape requested by $one.
+     * Shared by getResults() (raw SQL) and getQuery() (bound parameters).
+     * @param mixed $res
+     * @param int $one
+     * @return mixed
+     */
+    private function processQueryResult ($res, int $one) {
+        if (is_string($res) || !is_object($res)) return $res;
+        $col_row = mysqli_num_rows($res);
+        if (!$col_row && $one != 1) return [];
+        if (!$col_row && $one == 1) return '';
+        if ($col_row == 1 && $one && $one < 3) {
+            $result = mysqli_fetch_assoc($res);
+            if (count($result) === 1 && $one === 1) $result = implode('', $result);
+            return $result;
+        }
+        return $this->res2array($res, $one);
+    }
+
+    /**
+     * Execute a SELECT query and return the results
+     * @param string $sql - SQL query
+     * @param array $values - Parameter values for the query
+     * @param int $one - Return type
+     * @return mixed SQL query result
+     */
+    public function getQuery (string $sql, array $values = [], int|string $one = 0) {
+        $one = parent::checkReturnType($one);
+        if ($one === false) {
+            $this->logs[] = "Wrong parameter ONE: ".$one;
+            $one = 0;
+        }
+        if ($one == 7) {
+            $sql = 'EXPLAIN '.$sql;
+            $one = 2;
+        }
+        // Executed via a real mysqli prepared statement with bound parameters
+        // (see queryPrepared()/bindNamedParams()) rather than substituting
+        // escaped values into the SQL text and running it as a raw string.
+        $res = $this->queryPrepared($sql, $values);
+        $result = $this->processQueryResult($res, $one);
+        if (!$this->db_storage) $this->getClose();
+        return $result;
+    }
+
+    /**
+     * Get the SQL query with parameters substituted
+     * @param string $sql - SQL query
+     * @param array $values - Parameter values for the query
+     * @return string
+     */
+    public function getQuerySQL (string $sql, array $values = []) {
+        return preg_replace_callback('/:([A-Za-z_][A-Za-z0-9_]*)/', function ($match) use ($values) {
+            $key = $match[1];
+            if (!array_key_exists($key, $values)) return $match[0];
+            $value = $values[$key];
+            if ($value === null || $value === 'NULL') return 'NULL';
+            if (is_array($value)) $value = json_encode($value);
+            return "'".$this->escapeString((string) $value)."'";
+        }, $sql);
+    }
+
+    /**
+     * Convert ":name" style placeholders into positional "?" placeholders,
+     * walking the SQL left to right so that repeated or interleaved
+     * placeholders line up correctly with their bound value (a naive
+     * per-key str_replace, as getQuerySQL() above does, does NOT preserve
+     * correct ordering when two different placeholders are interleaved, e.g.
+     * ":a ... :b ... :a"). Placeholders with no matching key in $values are
+     * left untouched, matching getQuerySQL()'s existing behaviour.
+     *
+     * @param string $sql
+     * @param array $values
+     * @return array{0:string,1:array} [positional SQL, ordered params]
+     */
+    private function bindNamedParams (string $sql, array $values): array {
+        $params = [];
+        $newSql = preg_replace_callback('/:([A-Za-z_][A-Za-z0-9_]*)/', function ($m) use ($values, &$params) {
+            $key = $m[1];
+            if (!array_key_exists($key, $values)) return $m[0];
+            $value = $values[$key];
+            if (is_array($value)) $value = json_encode($value);
+            $params[] = $value;
+            return '?';
+        }, $sql);
+        return [$newSql, $params];
+    }
+
+    /**
+     * Execute a query using a real mysqli prepared statement with bound
+     * parameters, instead of embedding escaped values into the SQL text.
+     * This is the actual injection defence for getQuery(); getQuerySQL()
+     * remains available separately for callers who only want to see/log
+     * the resulting SQL text.
+     * @param string $sql - SQL query with :name placeholders
+     * @param array $values - values keyed by placeholder name
+     * @return bool|mysqli_result
+     */
+    private function queryPrepared (string $sql, array $values) {
+        $code = 'query';
+        if (!$values) return $this->query($sql, 1);
+        [$positional_sql, $params] = $this->bindNamedParams($sql, $values);
+        $connected = true;
+        if (!$this->db_storage) $connected = $this->getConnect();
+        if (!$connected) return false;
+        if (!$this->getDB()) return false;
+        if (!$stmt = mysqli_prepare($this->db_connect, $positional_sql)) {
+            return $this->DBError("Could not prepare: $positional_sql", $code);
+        }
+        $run_time = microtime(true);
+        // mysqli_stmt_execute() accepting a $params array directly (PHP 8.1+)
+        // avoids the classic bind_param-by-reference dance entirely.
+        $ok = @mysqli_stmt_execute($stmt, $params ?: null);
+        $this->run_time = microtime(true) - $run_time;
+        if (!$ok) {
+            $this->DBError("Could not query: $sql;", $code);
+            mysqli_stmt_close($stmt);
+            return false;
+        }
+        elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+        if (!function_exists('mysqli_stmt_get_result')) {
+            // Do not fall back to interpolating values into SQL: that would
+            // discard the protection provided by the prepared statement.
+            $hasResult = mysqli_stmt_field_count($stmt) > 0;
+            mysqli_stmt_close($stmt);
+            if (!$hasResult) return true;
+            return $this->DBError("Could not read prepared result: mysqli_stmt_get_result() requires mysqlnd", $code);
+        }
+        $res = mysqli_stmt_get_result($stmt); // detached from $stmt, safe to use after close()
+        if ($res === false && mysqli_stmt_errno($stmt)) {
+            $this->DBError("Could not query: $sql;", $code);
+            mysqli_stmt_close($stmt);
+            return false;
+        }
+        mysqli_stmt_close($stmt);
+        if ($res !== false && $this->log_all) $this->logs[] = "MySQL prepared query completed successfully.";
+        // No result set (INSERT/UPDATE/DELETE) behaves like mysqli_query()'s TRUE.
+        return $res === false ? true : $res;
     }
 
     /**
      * DB MySQL connect
      * @return bool
      */
-    private function getConnect () { // Connect to database
+    private function getConnect () {
         $code = 'getConnect';
         if ($this->use_transaction) {
             if ($this->db_port) {
-                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port.\n Info: ".mysqli_connect_error(), $code);
+                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port)) return $this->DBError("Could not connect to host: $this->db_host.\n Port: $this->db_port.\n Info: ".mysqli_connect_error(), $code);
                 elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
             }
             else {
-                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port.\n Info: ".mysqli_connect_error(), $code);
+                if (!$this->db_connect = @mysqli_connect($this->db_host, $this->db_user, $this->db_pass)) return $this->DBError("Could not connect to host: $this->db_host.\n Port: $this->db_port.\n Info: ".mysqli_connect_error(), $code);
                 elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
             }
             @mysqli_autocommit($this->db_connect, TRUE);
@@ -186,7 +318,7 @@ class MySQL extends AbstractDB {
         else {
             if ($this->db_port) $host = $this->db_host.':'.$this->db_port;
             else $host = $this->db_host;
-            if (!$this->db_connect = @mysqli_connect($host, $this->db_user, $this->db_pass)) return $this->DB_Error("Could not connect to host: $this->db_host.\n Port: $this->db_port.\n Info: ".mysqli_connect_error(), $code);
+            if (!$this->db_connect = @mysqli_connect($host, $this->db_user, $this->db_pass)) return $this->DBError("Could not connect to host: $this->db_host.\n Port: $this->db_port.\n Info: ".mysqli_connect_error(), $code);
             elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
         }
         if ($this->log_all) $this->logs[] = "Connect to MySQL Host: ".$this->db_host.", User: ". $this->db_user.", DB: ".$this->db_name." - success";
@@ -219,7 +351,7 @@ class MySQL extends AbstractDB {
      * @param integer $other_function - execute a request from another function (not a direct request, close the connection)
      * @return bool|mysqli_result
      */
-    public function query ($sql, $other_function = 0) { // SQL query
+    public function query (string $sql, $other_function = 0): mixed {
         $code = 'query';
         $connected = true;
         if (!$this->db_storage) $connected = $this->getConnect();
@@ -231,11 +363,11 @@ class MySQL extends AbstractDB {
         $this->run_time = microtime(true) - $run_time;
         if ($res === false) {
             $message = "Could not query: $sql;";// Error message: ".mysqli_error($this->db_connect);
-            $this->DB_Error($message, $code);
+            $this->DBError($message, $code);
         }
         elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
         if (!$this->db_storage && !$other_function) $this->getClose();
-        if ($this->log_all) $this->logs[] = "MySQL QUERY: ".$sql." - success";
+        if ($res !== false && $this->log_all) $this->logs[] = "MySQL query completed successfully.";
         return $res;
     }
 
@@ -245,7 +377,7 @@ class MySQL extends AbstractDB {
      * @param int $one - processing parameter (see getResults)
      * @return array
      */
-    private function res2array ($res, $one = 0) { // Get query results to array
+    private function res2array ($res, $one = 0) {
         $result = [];
         if (is_array($res)) return $res;
         if (is_resource($res) || is_object($res) || $this->use_transaction) {
@@ -280,7 +412,7 @@ class MySQL extends AbstractDB {
      * Database select
      * @return bool
      */
-    private function getDB () { // Select DB
+    private function getDB () {
         $code = 'getDB';
         if ($this->use_transaction && @mysqli_select_db($this->db_connect, $this->db_name)) {
             if (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
@@ -290,7 +422,7 @@ class MySQL extends AbstractDB {
             if (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
             return true;
         }
-        else return $this->DB_Error("Could not select database: $this->db_name.", $code);
+        else return $this->DBError("Could not select database: $this->db_name.", $code);
     }
 
     /**
@@ -319,7 +451,7 @@ class MySQL extends AbstractDB {
      * Getting a list of tables
      * @return array
      */
-    public function getTableList () {
+    public function getTableList (): array|false {
         $sql = "SHOW TABLES FROM ".$this->db_name;
         $this->db_Tables = $this->getResults($sql, 4);
         return $this->db_Tables;
@@ -330,19 +462,20 @@ class MySQL extends AbstractDB {
      * @param $table - table name
      * @return array|mixed
      */
-    public function getListFields($table) { // Get Fields from table
+    public function getListFields($table) {
+        $table = $this->validateIdentifier((string) $table);
         $code = 'getListFields';
         $name_field = [];
         if (!in_array($table, $this->db_Tables)) $this->getTableList();
         if (!in_array($table, $this->db_Tables)) {
-            $this->DB_Error("Could not create List Fields: Table - $table not exists", $code);
+            $this->DBError("Could not create List Fields: Table - $table not exists", $code);
             return false;
         }
         elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
         if (!isset($this->db_TableList[$table])) {
             $sql = "SHOW COLUMNS FROM $table";
             $fields = $this->getResults($sql, 4);
-            foreach ($fields as $key=>$value) $name_field[] = $value['Field'];
+            foreach ($fields as $key=>$value) $name_field[] = $value;
             $this->db_TableList[$table]=$name_field;
         }
         else {
@@ -359,8 +492,24 @@ class MySQL extends AbstractDB {
      * @return string
      */
     public function setInsert ($table, $values) {
-        $sql = $this->getInsertSQL($table, $values);
-        return $this->query($sql);
+        if (!is_array($values)) return false;
+        $table = $this->validateIdentifier((string) $table);
+        $tableFields = $this->getListFields($table);
+        if (!$tableFields) return false;
+        $fields = [];
+        $params = [];
+        foreach ($values as $key => $value) {
+            if (in_array($key, $tableFields, true)) {
+                $fields[] = "`$key`";
+                $params[$key] = is_array($value) ? json_encode($value) : $value;
+            }
+        }
+        if (!$fields) return false;
+        $placeholders = array_map(static fn ($key): string => ':'.$key, array_keys($params));
+        return $this->getQuery(
+            "INSERT INTO $table (".implode(', ', $fields).") VALUES (".implode(', ', $placeholders).")",
+            $params
+        ) !== false;
     }
 
     /**
@@ -369,11 +518,12 @@ class MySQL extends AbstractDB {
      * @param array $values - array of data to add in the format array(['field_name'] => 'value');
      * @return string
      */
-    public function getInsertSQL ($table, $values) { // Create Insert query
+    public function getInsertSQL (string $table, array $values): string|false {
+        $table = $this->validateIdentifier($table);
         $code = 'getInsertSQL';
         if (!$tab_fields = $this->getListFields($table)) return FALSE;
         if (!is_array($values)) {
-            $this->DB_Error("Could not create insert query: Error values - $values (not array)", $code);
+            $this->DBError("Could not create insert query: Error values - $values (not array)", $code);
             return false;
         }
         elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
@@ -389,7 +539,7 @@ class MySQL extends AbstractDB {
             }
         }
         $sql = "INSERT INTO $table ($fields) VALUES ($val)";
-        if ($this->log_all) $this->logs[] = "Create INSERT QUERY: ".$sql." - success";
+        if ($this->log_all) $this->logs[] = "INSERT SQL generated successfully.";
         return $sql;
     }
 
@@ -401,8 +551,33 @@ class MySQL extends AbstractDB {
      * @return string
      */
     public function setUpdate ($table, $values, $index=false) {
-        $sql = $this->getUpdateSQL($table, $values);
-        return $this->query($sql);
+        if (!is_array($values) || ($index !== false && !is_array($index))) return false;
+        $table = $this->validateIdentifier((string) $table);
+        $tableFields = $this->getListFields($table);
+        if (!$tableFields) return false;
+        $assignments = [];
+        $params = [];
+        foreach ($values as $key => $value) {
+            if (in_array($key, $tableFields, true)) {
+                $assignments[] = "`$key` = :value_$key";
+                $params['value_'.$key] = is_array($value) ? json_encode($value) : $value;
+            }
+        }
+        if (!$assignments) return false;
+        $conditions = [];
+        foreach ($index ?: [] as $key => $value) {
+            if (!in_array($key, $tableFields, true)) continue;
+            if ($value === 'NULL') $conditions[] = "`$key` IS NULL";
+            elseif ($value === 'NOT NULL') $conditions[] = "`$key` IS NOT NULL";
+            else {
+                $placeholder = 'where_'.$key;
+                $conditions[] = "`$key` = :$placeholder";
+                $params[$placeholder] = is_array($value) ? json_encode($value) : $value;
+            }
+        }
+        $sql = "UPDATE $table SET ".implode(', ', $assignments);
+        if ($conditions) $sql .= ' WHERE '.implode(' AND ', $conditions);
+        return $this->getQuery($sql, $params) !== false;
     }
 
     /**
@@ -412,11 +587,12 @@ class MySQL extends AbstractDB {
      * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return string
      */
-    public function getUpdateSQL ($table, $values, $index=false) { // Create Update query
+    public function getUpdateSQL (string $table, array $values, array|false $index=false): string|false {
+        $table = $this->validateIdentifier($table);
         $code = 'getUpdateSQL';
         if (!$tab_fields = $this->getListFields($table)) return false;
         if (!is_array($values)) {
-            $this->DB_Error("Could not create update query: Error values - $values (not array)", $code);
+            $this->DBError("Could not create update query: Error values - $values (not array)", $code);
             return false;
         }
         elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
@@ -429,27 +605,10 @@ class MySQL extends AbstractDB {
                 $fields = ($fields)?"$fields, `$key` = $value":"`$key` = $value";
             }
         }
-        $ind = '';
-        if ($index) {
-            if (!is_array($index)) {
-                $this->DB_Error("Could not create update query: Error keys - $index (not array)", $code);
-                return false;
-            }
-            elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
-            foreach ($index as $key => $value) {
-                if (in_array($key,$tab_fields)) {
-                    if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
-                    elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
-                    else {
-                        $value = $this->escapeString($value);
-                        $ind = ($ind)?"$ind AND `$key` = '$value'":"`$key` = '$value'";
-                    }
-                }
-            }
-        }
-        if ($ind) $ind = "WHERE $ind";
+        $ind = $this->buildWhereClause($index, $tab_fields, $code);
+        if ($ind === false) return false;
         $sql = "UPDATE $table SET $fields $ind";
-        if ($this->log_all) $this->logs[] = "Create UPDATE QUERY: ".$sql." - success";
+        if ($this->log_all) $this->logs[] = "UPDATE SQL generated successfully.";
         return $sql;
     }
 
@@ -460,8 +619,24 @@ class MySQL extends AbstractDB {
      * @return string
      */
     public function setDelete ($table, $index=false) {
-        $sql = $this->getDeleteSQL($table, $index);
-        return $this->query($sql);
+        if ($index !== false && !is_array($index)) return false;
+        $table = $this->validateIdentifier((string) $table);
+        $tableFields = $this->getListFields($table);
+        if (!$tableFields) return false;
+        $conditions = [];
+        $params = [];
+        foreach ($index ?: [] as $key => $value) {
+            if (!in_array($key, $tableFields, true)) continue;
+            if ($value === 'NULL') $conditions[] = "`$key` IS NULL";
+            elseif ($value === 'NOT NULL') $conditions[] = "`$key` IS NOT NULL";
+            else {
+                $conditions[] = "`$key` = :$key";
+                $params[$key] = is_array($value) ? json_encode($value) : $value;
+            }
+        }
+        $sql = "DELETE FROM $table";
+        if ($conditions) $sql .= ' WHERE '.implode(' AND ', $conditions);
+        return $this->getQuery($sql, $params) !== false;
     }
 
     /**
@@ -470,30 +645,14 @@ class MySQL extends AbstractDB {
      * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
      * @return string
      */
-    public function getDeleteSQL ($table, $index=false) { // Create Delete query
+    public function getDeleteSQL (string $table, array|false $index=false): string|false {
+        $table = $this->validateIdentifier($table);
         $code = 'getDeleteSQL';
         if (!$tab_fields = $this->getListFields($table)) return false;
-        $ind = '';
-        if ($index) {
-            if (!is_array($index)) {
-                $this->DB_Error("Could not create delete query: Error keys - $index (not array)");
-                return FALSE;
-            }
-            elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
-            foreach ($index as $key => $value) {
-                if (in_array($key,$tab_fields)) {
-                    if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
-                    elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
-                    else {
-                        $value = $this->escapeString($value);
-                        $ind = ($ind)?"$ind AND `$key` = '$value'":"`$key` = '$value'";
-                    }
-                }
-            }
-        }
-        if ($ind) $ind = "WHERE $ind";
+        $ind = $this->buildWhereClause($index, $tab_fields, $code);
+        if ($ind === false) return false;
         $sql = "DELETE FROM $table $ind";
-        if ($this->log_all) $this->logs[] = "Create DELETE QUERY: ".$sql." - success";
+        if ($this->log_all) $this->logs[] = "DELETE SQL generated successfully.";
         return $sql;
     }
 
@@ -505,7 +664,6 @@ class MySQL extends AbstractDB {
      */
     public function getQueryFile ($SQLFile = "db.sql") {
         if (file_exists($SQLFile) ) {
-            //set_magic_quotes_runtime(0);
             $fileSQL = file_get_contents($SQLFile);
             $fileSQL = preg_split("/\n/", $fileSQL);
             $i = 0;
@@ -530,7 +688,7 @@ class MySQL extends AbstractDB {
             }
         }
         else {
-            $this->DB_Error("Could not create query. File not found: $SQLFile.");
+            $this->DBError("Could not create query. File not found: $SQLFile.");
             return false;
         }
         if (!$this->db_storage) $this->getClose();
@@ -553,12 +711,13 @@ class MySQL extends AbstractDB {
             if (sizeof($index)) {
                 if (!$tab_fields = $this->getListFields($table)) return FALSE;
                 if (!is_array($index)) {
-                    $this->DB_Error("Could not create SELECT LAST ID query: Error keys - $index (not array)", $code);
+                    $this->DBError("Could not create SELECT LAST ID query: Error keys - $index (not array)", $code);
                     return FALSE;
                 }
                 elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
                 foreach ($index as $key => $value) {
                     if (in_array($key,$tab_fields)) {
+                        $value = $this->escapeString($value);
                         if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
                         elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
                         else $ind = ($ind)?"$ind AND `$key` = '$value'":"`$key` = '$value'";
@@ -585,13 +744,40 @@ class MySQL extends AbstractDB {
     }
 
     /**
+     * Build a WHERE clause from validated table fields.
+     *
+     * @param mixed $index
+     * @param array $tableFields
+     * @param string $code
+     * @return string|false
+     */
+    private function buildWhereClause ($index, array $tableFields, string $code) {
+        if (!$index) return '';
+        if (!is_array($index)) {
+            $this->DBError("Could not create WHERE query: Error keys - $index (not array)", $code);
+            return false;
+        }
+        if (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
+
+        $conditions = [];
+        foreach ($index as $key => $value) {
+            if (!in_array($key, $tableFields, true)) continue;
+            if ($value === 'NULL') $conditions[] = "`$key` IS NULL";
+            elseif ($value === 'NOT NULL') $conditions[] = "`$key` IS NOT NULL";
+            else $conditions[] = "`$key` = '".$this->escapeString($value)."'";
+        }
+
+        return $conditions ? 'WHERE '.implode(' AND ', $conditions) : '';
+    }
+
+    /**
      * Error handling.
      * Output to screen, save to error variable.
      * @param string $message - error message
      * @param string $code - error code
      * @return bool
      */
-    private function DB_Error ($message='', $code = '') {
+    private function DBError ($message='', $code = '') {
 
         if ($code && isset($this->error_code[$code])) return false;
         elseif ($code) $this->error_code[$code] = true;
@@ -606,10 +792,7 @@ class MySQL extends AbstractDB {
 
         parent::Error($message, 'MySQL');
 
-        if ($this->error_exit) {
-            if (!$this->db_storage) $this->getClose();
-            exit;
-        }
+        if ($this->error_exit && !$this->db_storage) $this->getClose();
         return false;
     }
 

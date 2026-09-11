@@ -497,17 +497,19 @@ class MySQL extends AbstractDB {
         $tableFields = $this->getListFields($table);
         if (!$tableFields) return false;
         $fields = [];
+        foreach ($tableFields as $field_row) $fields[] = $field_row['Field'];
+        $fields_res = [];
         $params = [];
         foreach ($values as $key => $value) {
-            if (in_array($key, $tableFields, true)) {
-                $fields[] = "`$key`";
+            if (in_array($key, $fields, true)) {
+                $fields_res[] = "`$key`";
                 $params[$key] = is_array($value) ? json_encode($value) : $value;
             }
         }
-        if (!$fields) return false;
+        if (!$fields_res) return false;
         $placeholders = array_map(static fn ($key): string => ':'.$key, array_keys($params));
         return $this->getQuery(
-            "INSERT INTO $table (".implode(', ', $fields).") VALUES (".implode(', ', $placeholders).")",
+            "INSERT INTO $table (".implode(', ', $fields_res).") VALUES (".implode(', ', $placeholders).")",
             $params
         ) !== false;
     }
@@ -522,6 +524,8 @@ class MySQL extends AbstractDB {
         $table = $this->validateIdentifier($table);
         $code = 'getInsertSQL';
         if (!$tab_fields = $this->getListFields($table)) return FALSE;
+        $field_names = [];
+        foreach ($tab_fields as $field_row) $field_names[] = $field_row['Field'];
         if (!is_array($values)) {
             $this->DBError("Could not create insert query: Error values - $values (not array)", $code);
             return false;
@@ -530,7 +534,7 @@ class MySQL extends AbstractDB {
         $fields = '';
         $val = '';
         foreach ($values as $key => $value) {
-            if (in_array($key,$tab_fields)) {
+            if (in_array($key, $field_names, true)) {
                 $fields = ($fields)?"$fields, `$key`":"`$key`";
                 if (is_array($value)) $value = json_encode($value);
                 $value = $this->escapeString($value);
@@ -538,6 +542,7 @@ class MySQL extends AbstractDB {
                 $val = ($val)?"$val, $value":"$value";
             }
         }
+        if (!$fields) return false;
         $sql = "INSERT INTO $table ($fields) VALUES ($val)";
         if ($this->log_all) $this->logs[] = "INSERT SQL generated successfully.";
         return $sql;
@@ -548,17 +553,19 @@ class MySQL extends AbstractDB {
      * @param string $table - table name
      * @param array $values - array of data for update in the format array(['field_name'] => 'value');
      * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
-     * @return string
+     * @return bool
      */
-    public function setUpdate ($table, $values, $index=false) {
+    public function setUpdate (string $table, array $values, $index=false): bool {
         if (!is_array($values) || ($index !== false && !is_array($index))) return false;
         $table = $this->validateIdentifier((string) $table);
         $tableFields = $this->getListFields($table);
         if (!$tableFields) return false;
+        $fields = [];
+        foreach ($tableFields as $field_row) $fields[] = $field_row['Field'];
         $assignments = [];
         $params = [];
         foreach ($values as $key => $value) {
-            if (in_array($key, $tableFields, true)) {
+            if (in_array($key, $fields, true)) {
                 $assignments[] = "`$key` = :value_$key";
                 $params['value_'.$key] = is_array($value) ? json_encode($value) : $value;
             }
@@ -566,7 +573,7 @@ class MySQL extends AbstractDB {
         if (!$assignments) return false;
         $conditions = [];
         foreach ($index ?: [] as $key => $value) {
-            if (!in_array($key, $tableFields, true)) continue;
+            if (!in_array($key, $fields, true)) continue;
             if ($value === 'NULL') $conditions[] = "`$key` IS NULL";
             elseif ($value === 'NOT NULL') $conditions[] = "`$key` IS NOT NULL";
             else {
@@ -591,23 +598,25 @@ class MySQL extends AbstractDB {
         $table = $this->validateIdentifier($table);
         $code = 'getUpdateSQL';
         if (!$tab_fields = $this->getListFields($table)) return false;
+        $fields = [];
+        foreach ($tab_fields as $field_row) $fields[] = $field_row['Field'];
         if (!is_array($values)) {
             $this->DBError("Could not create update query: Error values - $values (not array)", $code);
             return false;
         }
         elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
-        $fields = '';
+        $fields_res = '';
         foreach ($values as $key => $value) {
-            if (in_array($key,$tab_fields)) {
+            if (in_array($key,$fields)) {
                 if (is_array($value)) $value = json_encode($value);
-                $value = $this->escapeString($value);
+                if (is_string($value)) $value = $this->escapeString($value);
                 $value = ($value == 'NULL')?$value:"'$value'";
-                $fields = ($fields)?"$fields, `$key` = $value":"`$key` = $value";
+                $fields_res = ($fields_res)?"$fields_res, `$key` = $value":"`$key` = $value";
             }
         }
-        $ind = $this->buildWhereClause($index, $tab_fields, $code);
+        $ind = $this->buildWhereClause($index, $fields, $code);
         if ($ind === false) return false;
-        $sql = "UPDATE $table SET $fields $ind";
+        $sql = "UPDATE $table SET $fields_res $ind";
         if ($this->log_all) $this->logs[] = "UPDATE SQL generated successfully.";
         return $sql;
     }
@@ -616,17 +625,19 @@ class MySQL extends AbstractDB {
      * Creating and run a Delete query
      * @param string $table - table name
      * @param mixed $index - array of WHERE condition data in the format array(['field_name'] => 'value');
-     * @return string
+     * @return bool
      */
     public function setDelete ($table, $index=false) {
         if ($index !== false && !is_array($index)) return false;
         $table = $this->validateIdentifier((string) $table);
         $tableFields = $this->getListFields($table);
         if (!$tableFields) return false;
+        $fields = [];
+        foreach ($tableFields as $field_row) $fields[] = $field_row['Field'];
         $conditions = [];
         $params = [];
         foreach ($index ?: [] as $key => $value) {
-            if (!in_array($key, $tableFields, true)) continue;
+            if (!in_array($key, $fields, true)) continue;
             if ($value === 'NULL') $conditions[] = "`$key` IS NULL";
             elseif ($value === 'NOT NULL') $conditions[] = "`$key` IS NOT NULL";
             else {
@@ -649,7 +660,9 @@ class MySQL extends AbstractDB {
         $table = $this->validateIdentifier($table);
         $code = 'getDeleteSQL';
         if (!$tab_fields = $this->getListFields($table)) return false;
-        $ind = $this->buildWhereClause($index, $tab_fields, $code);
+        $fields = [];
+        foreach ($tab_fields as $field_row) $fields[] = $field_row['Field'];
+        $ind = $this->buildWhereClause($index, $fields, $code);
         if ($ind === false) return false;
         $sql = "DELETE FROM $table $ind";
         if ($this->log_all) $this->logs[] = "DELETE SQL generated successfully.";
@@ -710,13 +723,15 @@ class MySQL extends AbstractDB {
             $ind = '';
             if (sizeof($index)) {
                 if (!$tab_fields = $this->getListFields($table)) return FALSE;
+                $field_names = [];
+                foreach ($tab_fields as $field_row) $field_names[] = $field_row['Field'];
                 if (!is_array($index)) {
                     $this->DBError("Could not create SELECT LAST ID query: Error keys - $index (not array)", $code);
                     return FALSE;
                 }
                 elseif (isset($this->error_code[$code]) && $this->error_code[$code]) unset($this->error_code[$code]);
                 foreach ($index as $key => $value) {
-                    if (in_array($key,$tab_fields)) {
+                    if (in_array($key, $field_names, true)) {
                         $value = $this->escapeString($value);
                         if ($value == 'NULL') $ind = ($ind)?"$ind AND `$key` IS NULL":"`$key` IS NULL";
                         elseif ($value == 'NOT NULL') $ind = ($ind)?"$ind AND `$key` IS NOT NULL":"`$key` IS NOT NULL";
@@ -798,7 +813,7 @@ class MySQL extends AbstractDB {
 
     /**
      * Escape string
-     * @param string $string
+     * @param string|int|float|bool $string
      * @return string
      */
     private function escapeString ($string) {

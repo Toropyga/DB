@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-09-11
+
+### Added
+
+- Added parameterized `setInsert()`, `setUpdate()`, and `setDelete()` methods to the Oracle adapter.
+
+### Changed
+
+- Unified `TableList` field-name handling across the MySQL, Oracle, and PDOLIB adapters.
+- Oracle and PDOLIB now match MySQL result-shape behavior for scalar, row, column, and multi-row queries.
+- Oracle `getQuery()` now supports named OCI8 bind parameters and ordinary non-cursor SQL statements.
+- SQL text builders now reject empty `INSERT` and `UPDATE` statements when no valid table fields are supplied.
+- `getQuerySQL()` parameter substitution now preserves placeholder order for repeated and interleaved parameters.
+
+### Fixed
+
+- Fixed MySQL `getInsertSQL()`, `getDeleteSQL()`, and `lastID()` handling of `SHOW COLUMNS` metadata.
+- Fixed Oracle and PDOLIB handling of empty or invalid field lists.
+
 ### Added
 
 - Added `DatabaseAdapterInterface` as the common adapter contract.
@@ -40,5 +59,6 @@ All notable changes to this project are documented here.
 - `PDO_LIB` remains available as a temporary compatibility wrapper.
 - Minimum supported PHP version is 8.1.
 
-[Unreleased]: https://github.com/Toropyga/DB/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/Toropyga/DB/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/Toropyga/DB/releases/tag/v3.0.1
 [3.0.0]: https://github.com/Toropyga/DB/releases/tag/v3.0.0

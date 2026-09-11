@@ -184,14 +184,54 @@ class Oracle extends AbstractDB {
         else $result = [];
         if ($res && $col_row = sizeof($res)) {
             if ($col_row == 1 && $one && $one < 3) {
-                if ($one != 1) foreach ($res as $row) $result = $row;
-                else $result = join('', array_values($res[0]));
+                $result = $res[0];
+                if ($one == 1 && count($result) === 1) $result = implode('', $result);
             }
             elseif (!$one) $result = $res;
             else $result = $this->res2array($res, $one);
         }
         elseif (!$res) return $res;
         return $result;
+    }
+
+    /**
+     * Execute a query with named OCI8 bind parameters and return the result
+     * in the same shape as getResults().
+     *
+     * @param string $sql
+     * @param array $values
+     * @param int|string $one
+     * @return mixed
+     */
+    public function getQuery (string $sql, array $values = [], int|string $one = 0): mixed {
+        $oldParams = $this->sql_param;
+        $bind = [];
+        foreach ($values as $key => $value) {
+            $bind[str_starts_with((string) $key, ':') ? $key : ':'.$key] = $value;
+        }
+        $this->setBind($bind);
+        $result = $this->getResults($sql, $one);
+        $this->sql_param = $oldParams;
+        return $result;
+    }
+
+    /**
+     * Get the SQL query with parameters substituted for display or logging.
+     * Query execution continues to use OCI8 bind parameters through getQuery().
+     *
+     * @param string $sql
+     * @param array $values
+     * @return string
+     */
+    public function getQuerySQL (string $sql, array $values = []): string {
+        return preg_replace_callback('/:([A-Za-z_][A-Za-z0-9_]*)/', function ($match) use ($values) {
+            $key = $match[1];
+            if (!array_key_exists($key, $values)) return $match[0];
+            $value = $values[$key];
+            if ($value === null || $value === 'NULL') return 'NULL';
+            if (is_array($value)) $value = json_encode($value);
+            return $this->formatSqlValue($value);
+        }, $sql);
     }
 
     /**
@@ -407,7 +447,7 @@ class Oracle extends AbstractDB {
                 $this->run_time = microtime(true)-$run_time;
                 if (isset($this->error_code['curs']) && $this->error_code['curs']) unset($this->error_code['curs']);
             }
-            elseif (!$this->cursor) {
+            elseif (!$this->cursor || !$hasCursor) {
                 $run_time = microtime(true);
                 if (@oci_execute($stat)) {
                     $this->run_time = microtime(true)-$run_time;
@@ -463,6 +503,13 @@ class Oracle extends AbstractDB {
     private function res2array ($res, $one) {
         $result = [];
         switch ($one) {
+            case 1:
+            case 2:
+                foreach ($res as $row) {
+                    if (count($row) === 1) $result[] = array_values($row)[0];
+                    else $result[] = $row;
+                }
+                break;
             case 3:
                 foreach ($res as $row) {
                     if (sizeof($row) != 1) {
@@ -654,7 +701,25 @@ class Oracle extends AbstractDB {
                 $val = ($val)?"$val, $value_sql":"$value_sql";
             }
         }
+        if (!$fields) return false;
         return "INSERT INTO $table ($fields) VALUES ($val)";
+    }
+
+    /** Execute a parameterized insert query. @return bool */
+    public function setInsert (string $table, array $values): bool {
+        $table = $this->validateIdentifier($table);
+        $fields = $this->getListFields($table);
+        if (!$fields) return false;
+        $columns = [];
+        $params = [];
+        foreach ($values as $key => $value) {
+            if (!in_array($key, $fields, true)) continue;
+            $columns[] = $key;
+            $params[$key] = is_array($value) ? json_encode($value) : $value;
+        }
+        if (!$columns) return false;
+        $sql = "INSERT INTO $table (".implode(', ', $columns).") VALUES (:".implode(', :', array_keys($params)).")";
+        return $this->getQuery($sql, $params) !== false;
     }
 
     /**
@@ -682,9 +747,40 @@ class Oracle extends AbstractDB {
                 $fields = ($fields)?"$fields, $key = $value_sql":"$key = $value_sql";
             }
         }
+        if (!$fields) return false;
         $ind = $this->buildWhereClause($index, $tab_fields);
         if ($ind === false) return false;
         return "UPDATE $table SET $fields $ind";
+    }
+
+    /** Execute a parameterized update query. @return bool */
+    public function setUpdate (string $table, array $values, array|false $index = false): bool {
+        $table = $this->validateIdentifier($table);
+        $fields = $this->getListFields($table);
+        if (!$fields || ($index !== false && !is_array($index))) return false;
+        $assignments = [];
+        $params = [];
+        foreach ($values as $key => $value) {
+            if (!in_array($key, $fields, true)) continue;
+            $placeholder = 'value_'.$key;
+            $assignments[] = "$key = :$placeholder";
+            $params[$placeholder] = is_array($value) ? json_encode($value) : $value;
+        }
+        if (!$assignments) return false;
+        $conditions = [];
+        foreach ($index ?: [] as $key => $value) {
+            if (!in_array($key, $fields, true)) continue;
+            if ($value === 'NULL') $conditions[] = "$key IS NULL";
+            elseif ($value === 'NOT NULL') $conditions[] = "$key IS NOT NULL";
+            else {
+                $placeholder = 'where_'.$key;
+                $conditions[] = "$key = :$placeholder";
+                $params[$placeholder] = is_array($value) ? json_encode($value) : $value;
+            }
+        }
+        $sql = "UPDATE $table SET ".implode(', ', $assignments);
+        if ($conditions) $sql .= ' WHERE '.implode(' AND ', $conditions);
+        return $this->getQuery($sql, $params) !== false;
     }
 
     /**
@@ -699,6 +795,27 @@ class Oracle extends AbstractDB {
         $ind = $this->buildWhereClause($index, $tab_fields);
         if ($ind === false) return false;
         return "DELETE FROM $table $ind";
+    }
+
+    /** Execute a parameterized delete query. @return bool */
+    public function setDelete (string $table, array|false $index = false): bool {
+        $table = $this->validateIdentifier($table);
+        $fields = $this->getListFields($table);
+        if (!$fields || ($index !== false && !is_array($index))) return false;
+        $conditions = [];
+        $params = [];
+        foreach ($index ?: [] as $key => $value) {
+            if (!in_array($key, $fields, true)) continue;
+            if ($value === 'NULL') $conditions[] = "$key IS NULL";
+            elseif ($value === 'NOT NULL') $conditions[] = "$key IS NOT NULL";
+            else {
+                $conditions[] = "$key = :$key";
+                $params[$key] = is_array($value) ? json_encode($value) : $value;
+            }
+        }
+        $sql = "DELETE FROM $table";
+        if ($conditions) $sql .= ' WHERE '.implode(' AND ', $conditions);
+        return $this->getQuery($sql, $params) !== false;
     }
 
     /**

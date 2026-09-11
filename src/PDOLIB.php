@@ -230,15 +230,14 @@ class PDOLIB extends AbstractDB {
      * @return string
      */
     public function getQuerySQL (string $sql, array $values = []) {
-        foreach ($values as $key=>$value) {
-            if ($value === null || $value === 'NULL') $value = 'NULL';
-            else {
-                if (is_array($value)) $value = json_encode($value);
-                $value = $this->escapeString((string) $value); // already quoted
-            }
-            $sql = str_replace(":$key", $value, $sql);
-        }
-        return $sql;
+        return preg_replace_callback('/:([A-Za-z_][A-Za-z0-9_]*)/', function ($match) use ($values) {
+            $key = $match[1];
+            if (!array_key_exists($key, $values)) return $match[0];
+            $value = $values[$key];
+            if ($value === null || $value === 'NULL') return 'NULL';
+            if (is_array($value)) $value = json_encode($value);
+            return $this->escapeString((string) $value);
+        }, $sql);
     }
 
     /**
@@ -317,6 +316,7 @@ class PDOLIB extends AbstractDB {
         elseif (($one == 1 || $one == 2) && $col_count == 1) {
             foreach ($rows as $row) $result[] = array_values($row)[0];
         }
+        elseif ($one == 1 && $row_count == 1) $result = $rows[0];
         else $result = $rows;
         return $result;
     }
@@ -599,6 +599,7 @@ class PDOLIB extends AbstractDB {
                 $params[$key] = $value;
             }
         }
+        if (!$fields) return false;
         $sql = "INSERT INTO $table ($fields) VALUES ($val)";
         if (!$this->prepare($sql)) {
             return $this->DB_Error("Could not insert.", $code);
@@ -667,6 +668,7 @@ class PDOLIB extends AbstractDB {
                 $val[$key] = $value;
             }
         }
+        if (!$fields) return false;
         $ind = '';
         if ($index) {
             if (!is_array($index)) {
@@ -727,6 +729,7 @@ class PDOLIB extends AbstractDB {
                 $fields = ($fields)?"$fields, $field = $value":"$field = $value";
             }
         }
+        if (!$fields) return false;
         $ind = '';
         if ($index) {
             if (!is_array($index)) {

@@ -3,7 +3,7 @@
 Database classes
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.0.2-blue.svg)
+![Version](https://img.shields.io/badge/version-v3.1.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v8-blueviolet.svg)
 
 > The preferred PDO adapter name is `PDOLIB`. A temporary `PDO_LIB extends PDOLIB`
@@ -18,6 +18,7 @@ Database classes
 - [Requirements](#Requirements)
 - [Configuration](#Configuration)
     - [Configuration constants MySQL](#Configuration-constants-MySQL)
+    - [Configuration constants PostgreSQL](#Configuration-constants-PostgreSQL)
     - [Configuration constants ORACLE](#Configuration-constants-ORACLE)
     - [Configuration constants PDOLIB](#Configuration-constants-PDOLIB)
 - [Work description](#Work-description)
@@ -32,8 +33,9 @@ Database classes
 The library includes 3 main classes:
 
 1. MySQL - class for working with MySQL database.
-2. Oracle - class for working with Oracle database.
-3. PDOLIB - a generic class that uses the PDO library.
+2. PostgreSQL - class for working with PostgreSQL database through `ext-pgsql`.
+3. Oracle - class for working with Oracle database.
+4. PDOLIB - a generic class that uses the PDO library, including PostgreSQL and SQLite.
 
 Functions are standardized in all libraries.
 
@@ -65,6 +67,7 @@ composer require toropyga/db
 - PHP 8.1 or newer.
 - `ext-pdo` for `PDOLIB`.
 - `ext-mysqli` for `MySQL`.
+- `ext-pgsql` for `PostgreSQL`.
 - `ext-oci8` for `Oracle` and PDO Oracle connections.
 - `ext-json` when array values are encoded for SQL parameters.
 
@@ -94,11 +97,13 @@ Database-driver combinations require both `ext-pdo` and the matching PDO driver.
 | Adapter / driver | PHP 8.1+ | Required extensions | Status |
 | --- | --- | --- | --- |
 | `MySQL` | Yes | `ext-mysqli` | Declared support |
+| `PostgreSQL` | Yes | `ext-pgsql` | Declared support |
 | `Oracle` | Yes | `ext-oci8` | Declared support |
 | `PDOLIB` + `mysql` | Yes | `ext-pdo`, `ext-pdo_mysql` | Declared support |
 | `PDOLIB` + `pgsql` | Yes | `ext-pdo`, `ext-pdo_pgsql` | Declared support |
 | `PDOLIB` + `oci` | Yes | `ext-pdo`, `ext-pdo_oci` | Declared support |
 | `PDOLIB` + `odbc` | Yes | `ext-pdo`, `ext-pdo_odbc` | Declared support |
+| `PDOLIB` + `sqlite` | Yes | `ext-pdo`, `ext-pdo_sqlite` | Declared support |
 | JSON array values | Yes | `ext-json` | Required only when arrays are encoded |
 
 The matrix is a compatibility declaration, not a replacement for integration
@@ -107,6 +112,20 @@ tests against each database server and driver version.
 ## Configuration
 Pre-setting of default parameters can be done directly in the class itself or using a named constant. 
 Named constants are declared when the class is called, for example in a configuration file, and define default parameters.
+
+### Configuration constants PostgreSQL
+```php
+const DB_PGSQL_HOST = '127.0.0.1';  // PostgreSQL server name or address
+const DB_PGSQL_PORT = 5432;         // PostgreSQL server port
+const DB_PGSQL_NAME = 'database';    // Database name
+const DB_PGSQL_USER = 'user';        // User name
+const DB_PGSQL_PASS = 'password';    // User password
+const DB_PGSQL_STORAGE = true;       // Keep connection for the session
+const DB_PGSQL_DEBUG = false;        // Enable or disable debugging
+const DB_PGSQL_ERROR_EXIT = false;   // Throw DatabaseException on errors
+const DB_PGSQL_LOG_NAME = 'db.log';  // Log file name
+const DB_PGSQL_LOG_ALL = true;       // Log all actions or only errors
+```
 
 ### Configuration constants MySQL
 ```php
@@ -142,7 +161,7 @@ const DB_ORACLE_USE_HOST = 2;       // Connection record type:
 ```
 ### Configuration constants PDOLIB
 ```php
-const DB_PDO_TYPE = 'mysql';        // DB type ['mysql', 'pgsql', 'oci', 'odbc']
+const DB_PDO_TYPE = 'mysql';        // DB type ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite']
 const DB_PDO_HOST = '127.0.0.1';    // DB server name or address
 const DB_PDO_PORT = 3306;           // DB server port
 const DB_PDO_NAME = 'database';     // DB name
@@ -166,6 +185,7 @@ require_once("vendor/autoload.php");
 ### Classes initialisation
 ```php
 $MYSQL = new Toropyga\DB\MySQL();
+$POSTGRESQL = new Toropyga\DB\PostgreSQL();
 $ORACLE = new Toropyga\DB\Oracle();
 $PDO = new Toropyga\DB\PDOLIB();
 ```
@@ -198,7 +218,7 @@ $ORACLE = new Toropyga\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $
 
 /**
  * PDOLIB constructor.
- * @param string $db_type - DB type ['mysql', 'pgsql', 'oci', 'odbc']
+ * @param string $db_type - DB type ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite']
  * @param string $NAME - DB name
  * @param string $USER - user name
  * @param string $PASS - user password

@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## [3.1.0] - 2026-09-12
+
+### Added
+
+- Added the standalone `PostgreSQL` adapter using `ext-pgsql`.
+- Added PostgreSQL table metadata and parameterized CRUD operations.
+- Added SQLite support to `PDOLIB` through the `sqlite` PDO driver.
+- Added SQLite table and column metadata discovery.
+
 ## [3.0.2] - 2026-09-12
 
 ### Breaking Changes
@@ -78,7 +87,8 @@ All notable changes to this project are documented here.
 - `PDO_LIB` remains available as a temporary compatibility wrapper.
 - Minimum supported PHP version is 8.1.
 
-[Unreleased]: https://github.com/Toropyga/DB/compare/v3.0.2...HEAD
+[Unreleased]: https://github.com/Toropyga/DB/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/Toropyga/DB/releases/tag/v3.1.0
 [3.0.2]: https://github.com/Toropyga/DB/releases/tag/v3.0.2
 [3.0.1]: https://github.com/Toropyga/DB/releases/tag/v3.0.1
 [3.0.0]: https://github.com/Toropyga/DB/releases/tag/v3.0.0

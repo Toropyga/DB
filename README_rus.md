@@ -3,7 +3,7 @@
 Классы для работы с базами данных
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.0.2-blue.svg)
+![Version](https://img.shields.io/badge/version-v3.1.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v8-blueviolet.svg)
 
 > Предпочтительное имя PDO-адаптера — `PDOLIB`. Для перехода с v2.x временно
@@ -18,6 +18,7 @@
 - [Требования](#Требования)
 - [Настройка](#Настройка)
     - [Настроечные константы MySQL](#Настроечные-константы-MySQL)
+    - [Настроечные константы PostgreSQL](#Настроечные-константы-PostgreSQL)
     - [Настроечные константы ORACLE](#Настроечные-константы-ORACLE)
     - [Настроечные константы PDOLIB](#Настроечные-константы-PDOLIB)
 - [Описание работы](#описание-работы)
@@ -32,8 +33,9 @@
 В библиотеку входит 3 основных класса:
 
 1. MySQL - класс для работы с БД MySQL.
-2. Oracle - класс для работы с БД Oracle.
-3. PDOLIB - универсальный класс, использующий библиотеку PDO.
+2. PostgreSQL - класс для работы с PostgreSQL через `ext-pgsql`.
+3. Oracle - класс для работы с БД Oracle.
+4. PDOLIB - универсальный класс на основе PDO, включая PostgreSQL и SQLite.
 
 Функции во всех библиотеках стандартизованы.
 
@@ -66,6 +68,7 @@ composer require toropyga/db
 - PHP 8.1 или новее.
 - `ext-pdo` для `PDOLIB`.
 - `ext-mysqli` для `MySQL`.
+- `ext-pgsql` для `PostgreSQL`.
 - `ext-oci8` для `Oracle` и PDO-подключений к Oracle.
 - `ext-json`, если массивы передаются как значения SQL.
 
@@ -95,11 +98,13 @@ composer require toropyga/db
 | Адаптер / драйвер | PHP 8.1+ | Требуемые расширения | Статус |
 | --- | --- | --- | --- |
 | `MySQL` | Да | `ext-mysqli` | Заявленная поддержка |
+| `PostgreSQL` | Да | `ext-pgsql` | Заявленная поддержка |
 | `Oracle` | Да | `ext-oci8` | Заявленная поддержка |
 | `PDOLIB` + `mysql` | Да | `ext-pdo`, `ext-pdo_mysql` | Заявленная поддержка |
 | `PDOLIB` + `pgsql` | Да | `ext-pdo`, `ext-pdo_pgsql` | Заявленная поддержка |
 | `PDOLIB` + `oci` | Да | `ext-pdo`, `ext-pdo_oci` | Заявленная поддержка |
 | `PDOLIB` + `odbc` | Да | `ext-pdo`, `ext-pdo_odbc` | Заявленная поддержка |
+| `PDOLIB` + `sqlite` | Да | `ext-pdo`, `ext-pdo_sqlite` | Заявленная поддержка |
 | JSON-значения массивов | Да | `ext-json` | Нужно только при кодировании массивов |
 
 Матрица описывает совместимость по конфигурации проекта, но не заменяет
@@ -108,6 +113,20 @@ composer require toropyga/db
 ## Настройка
 Предварительная настройка параметров по умолчанию может осуществляться или непосредственно в самом классе, или с помощью именованных констант.
 Именованные константы при необходимости объявляются до вызова класса, например, в конфигурационном файле, и определяют параметры по умолчанию
+
+### Настроечные константы PostgreSQL
+```php
+const DB_PGSQL_HOST = '127.0.0.1';  // Имя/адрес сервера PostgreSQL
+const DB_PGSQL_PORT = 5432;         // Порт сервера PostgreSQL
+const DB_PGSQL_NAME = 'database';    // Имя базы данных
+const DB_PGSQL_USER = 'user';        // Имя пользователя
+const DB_PGSQL_PASS = 'password';    // Пароль пользователя
+const DB_PGSQL_STORAGE = true;       // Сохранять подключение на весь сеанс
+const DB_PGSQL_DEBUG = false;        // Включить отладку
+const DB_PGSQL_ERROR_EXIT = false;   // Выбрасывать DatabaseException при ошибке
+const DB_PGSQL_LOG_NAME = 'db.log';  // Имя файла логов
+const DB_PGSQL_LOG_ALL = true;       // Записывать все действия или только ошибки
+```
 
 ### Настроечные константы MySQL
 ```php
@@ -143,7 +162,7 @@ const DB_ORACLE_USE_HOST = 2;       // Тип записи для подключ
 ```
 ### Настроечные константы PDOLIB
 ```php
-const DB_PDO_TYPE = 'mysql';        // Тип БД ['mysql', 'pgsql', 'oci', 'odbc']
+const DB_PDO_TYPE = 'mysql';        // Тип БД ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite']
 const DB_PDO_HOST = '127.0.0.1';    // Имя/адрес сервера БД
 const DB_PDO_PORT = 3306;           // Порт сервера
 const DB_PDO_NAME = 'database';     // Имя базы данных
@@ -167,6 +186,7 @@ require_once("vendor/autoload.php");
 ### Инициализация классов
 ```php
 $MYSQL = new Toropyga\DB\MySQL();
+$POSTGRESQL = new Toropyga\DB\PostgreSQL();
 $ORACLE = new Toropyga\DB\Oracle();
 $PDO = new Toropyga\DB\PDOLIB();
 ```
@@ -199,7 +219,7 @@ $ORACLE = new Toropyga\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $
 
 /**
  * PDOLIB constructor.
- * @param string $db_type - тип БД ['mysql', 'pgsql', 'oci', 'odbc']
+ * @param string $db_type - тип БД ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite']
  * @param string $NAME - имя базы данных
  * @param string $USER - пользователь
  * @param string $PASS - пароль

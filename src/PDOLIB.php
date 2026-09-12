@@ -5,7 +5,6 @@ declare(strict_types=1);
 /**
  * A generic class that uses the PDO library.
  * @author Yuri Frantsevich
- * @version 3.0.2
  * @copyright 2019-2026
  */
 
@@ -23,7 +22,7 @@ class PDOLIB extends AbstractDB {
      * Array of supported database types
      * @var array
      */
-    private $db_types = ['mysql', 'pgsql', 'oci', 'odbc'];
+    private $db_types = ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite'];
     /**
      * Host name or address
      * @var string
@@ -355,6 +354,9 @@ class PDOLIB extends AbstractDB {
             case 'odbc':
                 $connect_line = "odbc:".$this->db_name;
                 break;
+            case 'sqlite':
+                $connect_line = "sqlite:".$this->db_name;
+                break;
             case 'mysql':
             default:
                 if (!$this->db_port) $this->db_port = 3306;
@@ -517,6 +519,10 @@ class PDOLIB extends AbstractDB {
                 if (!is_array($Tables)) return false;
                 foreach ($Tables as $i=>$tableName) $this->db_Tables[$i] = $tableName;
                 break;
+            case 'sqlite':
+                $sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name";
+                $this->db_Tables = $this->getResults($sql, 4);
+                break;
             case 'mysql':
             default:
                 $sql = "SHOW TABLES FROM ".$this->db_name;
@@ -564,6 +570,10 @@ class PDOLIB extends AbstractDB {
                 case 'oci':
                     $sql = "SELECT column_name FROM user_tab_cols WHERE table_name = ".$this->escapeString($lookupTable); // oracle
                     $field_key = 'column_name';
+                    break;
+                case 'sqlite':
+                    $sql = "PRAGMA table_info(".$this->quoteField($table).")";
+                    $field_key = 'name';
                     break;
                 case 'mysql':
                 default:

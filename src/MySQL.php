@@ -5,7 +5,6 @@ declare(strict_types=1);
 /**
  * Class for working with MySQL database
  * @author Yuri Frantsevich
- * @version 3.0.2
  * @copyright 2005-2026
  */
 

@@ -3,7 +3,7 @@
 Классы для работы с базами данных
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v3.0.2-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v8-blueviolet.svg)
 
 > Предпочтительное имя PDO-адаптера — `PDOLIB`. Для перехода с v2.x временно
@@ -71,6 +71,22 @@ composer require toropyga/db
 
 Подключайте только расширения, необходимые используемому адаптеру.
 
+### Несовместимые изменения API
+
+В текущей версии разработки для нескольких публичных методов усилена
+типизация параметров. Передача некорректного значения, которая раньше могла
+вернуть `false`, теперь может привести к `TypeError`. Изменения затрагивают:
+
+- `MySQL::getListFields(string $table)`
+- `MySQL::setInsert(string $table, array $values)`
+- `PDOLIB::prepare(string $sql, array $values = [...])`
+- `PDOLIB::getListFields(string $table)`
+- `Oracle::getProcedureQuery(string $package, string $procedure, ...)`
+
+Проверяйте аргументы до вызова этих методов и обновите интеграции, которые
+использовали прежнее нестрогое поведение. Изменение является намеренно
+обратно несовместимым; подробности приведены в [CHANGELOG.md](CHANGELOG.md).
+
 ### Матрица поддержки
 
 Версия PHP соответствует заявлению в `composer.json`. Для PDO требуются
@@ -96,31 +112,31 @@ composer require toropyga/db
 ### Настроечные константы MySQL
 ```php
 const DB_MYSQL_HOST = '127.0.0.1';  // Имя/адрес сервера БД
-const DB_MYSQL_PORT;                // Порт сервера
-const DB_MYSQL_NAME;                // Имя базы данных
-const DB_MYSQL_USER;                // Имя пользователя
-const DB_MYSQL_PASS;                // Пароль пользователя
-const DB_MYSQL_STORAGE;             // Сохранять подключение на весь сеанс или подключаться при каждом SQL-запросе
-const DB_MYSQL_USE_TRANSACTION;     // Использовать постоянное подключение
-const DB_MYSQL_DEBUG;               // Включить или отключить отладочные функции
-const DB_MYSQL_ERROR_EXIT;          // Выбрасывать DatabaseException при ошибке
-const DB_MYSQL_LOG_NAME;            // Имя файла логов
-const DB_MYSQL_LOG_ALL;             // Записывать в лог все действия (true) или только ошибки (false)
+const DB_MYSQL_PORT = 3306;         // Порт сервера
+const DB_MYSQL_NAME = 'database';   // Имя базы данных
+const DB_MYSQL_USER = 'user';       // Имя пользователя
+const DB_MYSQL_PASS = 'password';   // Пароль пользователя
+const DB_MYSQL_STORAGE = true;      // Сохранять подключение на весь сеанс
+const DB_MYSQL_USE_TRANSACTION = true; // Использовать транзакции
+const DB_MYSQL_DEBUG = false;       // Включить или отключить отладочные функции
+const DB_MYSQL_ERROR_EXIT = false;  // Выбрасывать DatabaseException при ошибке
+const DB_MYSQL_LOG_NAME = 'db.log'; // Имя файла логов
+const DB_MYSQL_LOG_ALL = true;      // Записывать все действия или только ошибки
 ```
 ### Настроечные константы ORACLE
 ```php
 const DB_ORACLE_HOST = 'db.example'; // Имя/адрес сервера БД
-const DB_ORACLE_PORT;               // Порт сервера Oracle
-const DB_ORACLE_NAME;               // Имя базы данных
-const DB_ORACLE_USER;               // Имя пользователя
-const DB_ORACLE_PASS;               // Пароль пользователя
-const DB_ORACLE_STORAGE;            // Сохранять подключение на весь сеанс или подключаться при каждом SQL-запросе
-const DB_ORACLE_CHARSET;            // Кодировка
-const DB_ORACLE_DEBUG;              // Включить или отключить отладочные функции
-const DB_ORACLE_ERROR_EXIT;         // Выбрасывать DatabaseException при ошибке
-const DB_ORACLE_LOG_NAME;           // Имя файла логов
-const DB_ORACLE_LOG_ALL;            // Записывать в лог все действия (true) или только ошибки (false)
-const DB_ORACLE_USE_HOST;           // Тип используемой записи для подключения к Oracle (принимает значение 0, 1 или 2), оптимально 2:
+const DB_ORACLE_PORT = 1521;        // Порт сервера Oracle
+const DB_ORACLE_NAME = 'service';   // Имя базы данных
+const DB_ORACLE_USER = 'user';      // Имя пользователя
+const DB_ORACLE_PASS = 'password';  // Пароль пользователя
+const DB_ORACLE_STORAGE = true;     // Сохранять подключение на весь сеанс
+const DB_ORACLE_CHARSET = 'AL32UTF8'; // Кодировка
+const DB_ORACLE_DEBUG = false;      // Включить или отключить отладочные функции
+const DB_ORACLE_ERROR_EXIT = false; // Выбрасывать DatabaseException при ошибке
+const DB_ORACLE_LOG_NAME = 'db.log'; // Имя файла логов
+const DB_ORACLE_LOG_ALL = true;     // Записывать все действия или только ошибки
+const DB_ORACLE_USE_HOST = 2;       // Тип записи для подключения к Oracle:
                                     //  0 - используется только имя базы данных
                                     //  1 - используется хост и имя базы данных
                                     //  2 - используется полная запись для подключения
@@ -128,14 +144,14 @@ const DB_ORACLE_USE_HOST;           // Тип используемой запи�
 ### Настроечные константы PDOLIB
 ```php
 const DB_PDO_TYPE = 'mysql';        // Тип БД ['mysql', 'pgsql', 'oci', 'odbc']
-const DB_PDO_HOST;                  // Имя/адрес сервера БД
-const DB_PDO_PORT;                  // Порт сервера
-const DB_PDO_NAME;                  // Имя базы данных
-const DB_PDO_USER;                  // Имя пользователя
-const DB_PDO_PASS;                  // Пароль пользователя
-const DB_PDO_DEBUG;                 // Включить или отключить отладочные функции
-const DB_PDO_ERROR_EXIT;            // Выбрасывать DatabaseException при ошибке
-const DB_PDO_ORACLE_CONNECT_TYPE;   // Тип используемой записи для подключения к Oracle (принимает значение 0, 1 или 2), оптимально 2:
+const DB_PDO_HOST = '127.0.0.1';    // Имя/адрес сервера БД
+const DB_PDO_PORT = 3306;           // Порт сервера
+const DB_PDO_NAME = 'database';     // Имя базы данных
+const DB_PDO_USER = 'user';          // Имя пользователя
+const DB_PDO_PASS = 'password';      // Пароль пользователя
+const DB_PDO_DEBUG = false;          // Включить или отключить отладочные функции
+const DB_PDO_ERROR_EXIT = false;     // Выбрасывать DatabaseException при ошибке
+const DB_PDO_ORACLE_CONNECT_TYPE = 2; // Тип записи для подключения к Oracle:
                                     //  0 - используется только имя базы данных
                                     //  1 - используется хост и имя базы данных
                                     //  2 - используется полная запись для подключения

@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Class for working with Oracle database
  * @author Yuri Frantsevich
- * @version 3.0.0
+ * @version 3.0.2
  * @copyright 2019-2026
  */
 
@@ -13,7 +13,7 @@ namespace Toropyga\DB;
 
 class Oracle extends AbstractDB {
 
-    private $oracle;
+    private mixed $oracle = null;
     /**
      * List of existing tables in Oracle DB and their fields
      * @var array
@@ -298,8 +298,8 @@ class Oracle extends AbstractDB {
 
     /**
      * Forming a query to an Oracle package with a return to a variable before the query
-     * @param $package - package name
-     * @param $procedure - procedure name
+     * @param string $package - package name
+     * @param string $procedure - procedure name
      * @param string $query_args - string of arguments, separated by commas
      * @return string
      */
@@ -310,12 +310,12 @@ class Oracle extends AbstractDB {
 
     /**
      * Forming a query to an Oracle package with a return to a variable in the query
-     * @param $package - package name
-     * @param $procedure - procedure name
+     * @param string $package - package name
+     * @param string $procedure - procedure name
      * @param string $query_args - string of arguments, separated by commas
      * @return string
      */
-    public function getProcedureQuery($package, $procedure, $query_args = '') {
+    public function getProcedureQuery(string $package, string $procedure, string $query_args = '') {
         if ($package) return " Begin ".$package.".".$procedure."(".$query_args."); End;";
         else return " Begin ".$procedure."(".$query_args."); End;";
     }
@@ -496,7 +496,7 @@ class Oracle extends AbstractDB {
 
     /**
      * Helper function for processing the result of a query to the Oracle database
-     * @param $res - object with query result
+     * @param object|resource $res - object with query result
      * @param int $one - processing type (see getResults function)
      * @return array
      */
@@ -592,7 +592,7 @@ class Oracle extends AbstractDB {
     }
 
     /** Escape a value for an Oracle SQL string literal. @param string $string */
-    private function escapeString ($string) {
+    private function escapeString (string $string) {
         return str_replace("'", "''", (string) $string);
     }
 

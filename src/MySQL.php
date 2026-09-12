@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Class for working with MySQL database
  * @author Yuri Frantsevich
- * @version 3.0.0
+ * @version 3.0.2
  * @copyright 2005-2026
  */
 
@@ -373,7 +373,7 @@ class MySQL extends AbstractDB {
 
     /**
      * Processing the result and forming an array of received data
-     * @param $res - data object
+     * @param object|resource $res - data object
      * @param int $one - processing parameter (see getResults)
      * @return array
      */
@@ -383,23 +383,50 @@ class MySQL extends AbstractDB {
         if (is_resource($res) || is_object($res) || $this->use_transaction) {
             if ($this->use_transaction && !mysqli_num_rows ($res)) return $result;
             elseif (!$this->use_transaction && !mysqli_num_rows ($res)) return $result;
+            // Used only for $one == 6 ('dub_all') to detect keys repeated across rows.
+            $keys = [];
+            $idx = 0;
             while ($row = mysqli_fetch_assoc ($res)) {
-                if ($one && count($row) === 1) {
+                if ($one == 6 && count($row) === 2) {
+                    $row = array_values($row);
+                    $key = $row[0];
+                    if (!$key) $key = 'no_value_'.$idx;
+                    $val = $row[1];
+                    if (!in_array($key, $keys, true)) {
+                        $keys[] = $key;
+                        $result[$key] = $val;
+                    }
+                    else {
+                        if (is_array($result[$key])) {
+                            if (!in_array($val, $result[$key])) $result[$key][] = $val;
+                        }
+                        else {
+                            $value = $result[$key];
+                            if ($value != $val) {
+                                $result[$key] = [];
+                                $result[$key][] = $value;
+                                $result[$key][] = $val;
+                            }
+                        }
+                    }
+                    $idx++;
+                }
+                elseif ($one && count($row) === 1) {
                     foreach ($row as $key=>$value) {
                         if ($one == 3) $result[$key][] = $value;
                         else $result[] = $value;
                     }
                 }
                 elseif ($one == 5 && count($row) === 2) {
-                    $idx = 0;
+                    $idx2 = 0;
                     $index = '';
                     $value = '';
                     foreach ($row as $rvalue) {
-                        if ($idx == 0) $index = $rvalue;
+                        if ($idx2 == 0) $index = $rvalue;
                         else $value = $rvalue;
-                        $idx++;
+                        $idx2++;
                     }
-                    if (!$index) $index = 'no_value_'.$idx;
+                    if (!$index) $index = 'no_value_'.$idx2;
                     $result[$index] = $value;
                 }
                 else $result[]=$row;
@@ -459,10 +486,10 @@ class MySQL extends AbstractDB {
 
     /**
      * Getting a list of fields in table
-     * @param $table - table name
+     * @param string $table - table name
      * @return array|mixed
      */
-    public function getListFields($table) {
+    public function getListFields(string $table) {
         $table = $this->validateIdentifier((string) $table);
         $code = 'getListFields';
         $name_field = [];
@@ -489,10 +516,10 @@ class MySQL extends AbstractDB {
      * Insert data to table
      * @param string $table - table name
      * @param array $values - array of data to add in the format array(['field_name'] => 'value');
-     * @return string
+     * @return bool
      */
-    public function setInsert ($table, $values) {
-        if (!is_array($values)) return false;
+    public function setInsert (string $table, array $values) {
+        if (!$values) return false;
         $table = $this->validateIdentifier((string) $table);
         $tableFields = $this->getListFields($table);
         if (!$tableFields) return false;

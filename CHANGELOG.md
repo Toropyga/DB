@@ -2,7 +2,26 @@
 
 All notable changes to this project are documented here.
 
-## [Unreleased]
+## [3.0.2] - 2026-09-12
+
+### Breaking Changes
+
+- Public methods now use strict parameter types. Calls that previously passed
+  invalid values and received `false` may now throw `TypeError`.
+- The affected methods are `MySQL::getListFields()`,
+  `MySQL::setInsert()`, `PDOLIB::prepare()`, `PDOLIB::getListFields()`, and
+  `Oracle::getProcedureQuery()`.
+- Update callers to validate arguments before calling these methods. This
+  change is intentionally documented as backwards-incompatible.
+
+### Fixed
+
+- Restored `MySQL` `res2array()` handling of `6`/`'dub_all'`, lost in 3.0.1.
+- `sanitizeErrorMessage()` no longer erases the underlying driver error text
+  (the `ERROR: ...` portion) when stripping SQL/query text from log messages.
+- `PDOLIB::getListFields()` now compares and caches Oracle (`oci`) table names
+  case-insensitively, matching `Oracle.php`'s own handling of Oracle's
+  upper-cased unquoted identifiers.
 
 ## [3.0.1] - 2026-09-11
 
@@ -59,6 +78,7 @@ All notable changes to this project are documented here.
 - `PDO_LIB` remains available as a temporary compatibility wrapper.
 - Minimum supported PHP version is 8.1.
 
-[Unreleased]: https://github.com/Toropyga/DB/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/Toropyga/DB/compare/v3.0.2...HEAD
+[3.0.2]: https://github.com/Toropyga/DB/releases/tag/v3.0.2
 [3.0.1]: https://github.com/Toropyga/DB/releases/tag/v3.0.1
 [3.0.0]: https://github.com/Toropyga/DB/releases/tag/v3.0.0

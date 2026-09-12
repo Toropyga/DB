@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * A generic class that uses the PDO library.
  * @author Yuri Frantsevich
- * @version 3.0.0
+ * @version 3.0.2
  * @copyright 2019-2026
  */
 
@@ -379,11 +379,11 @@ class PDOLIB extends AbstractDB {
 
     /**
      * Preparing a database query using the PDO module rules
-     * @param $sql - query
+     * @param string $sql - query
      * @param array $values - parameters to send
      * @return string
      */
-    public function prepare ($sql, $values = array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY)) {
+    public function prepare (string $sql, array $values = array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY)) {
         $code = 'prepare';
         $this->pdo = null;
         if (!$this->db_connect instanceof PDO) {
@@ -527,32 +527,42 @@ class PDOLIB extends AbstractDB {
 
     /**
      * Getting a list of existing fields in a table
-     * @param $table - table name
+     * @param string $table - table name
      * @return array|mixed
      */
-    public function getListFields($table) {
+    public function getListFields(string $table) {
         $table = $this->validateIdentifier((string) $table);
         $code = 'getListFields';
         $name_field = [];
-        if (!is_array($this->db_Tables) || !in_array($table, $this->db_Tables, true)) {
+        // FIX: Oracle stores unquoted identifiers upper-cased, so a lowercase
+        // table name (the common PHP convention) never matched $this->db_Tables
+        // (as returned by user_tables) under a case-sensitive comparison, even
+        // though the table genuinely existed. Compare and cache case-
+        // insensitively for 'oci', matching the same fix already applied in
+        // Oracle.php. Other driver types keep the original exact-match
+        // comparison.
+        $isOci = $this->db_type === 'oci';
+        $lookupTable = $isOci ? strtoupper($table) : $table;
+        $tables = is_array($this->db_Tables) ? ($isOci ? array_map('strtoupper', $this->db_Tables) : $this->db_Tables) : null;
+        if ($tables === null || !in_array($lookupTable, $tables, true)) {
             $this->db_Tables = $this->getTableList();
             if (!is_array($this->db_Tables)) return false;
+            $tables = $isOci ? array_map('strtoupper', $this->db_Tables) : $this->db_Tables;
         }
-        if (!in_array($table, $this->db_Tables, true)) {
+        if (!in_array($lookupTable, $tables, true)) {
             $this->DB_Error("Could not create List Fields: Table - $table not exists", $code);
             return false;
         }
-        if (!isset($this->db_TableList[$table])) {
-            $quoted_table = $this->escapeString($table); // already quoted, e.g. 'my_table'
+        if (!isset($this->db_TableList[$lookupTable])) {
             $field_key = 'Field';
             switch ($this->db_type) {
                 case 'odbc':
                 case 'pgsql':
-                    $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = $quoted_table"; // pgsql
+                    $sql = "SELECT column_name FROM information_schema.columns WHERE table_name = ".$this->escapeString($table); // pgsql
                     $field_key = 'column_name';
                     break;
                 case 'oci':
-                    $sql = "SELECT column_name FROM user_tab_cols WHERE table_name = $quoted_table"; // oracle
+                    $sql = "SELECT column_name FROM user_tab_cols WHERE table_name = ".$this->escapeString($lookupTable); // oracle
                     $field_key = 'column_name';
                     break;
                 case 'mysql':
@@ -564,11 +574,11 @@ class PDOLIB extends AbstractDB {
             foreach ($fields as $value) {
                 $name_field[] = is_array($value) ? ($value[$field_key] ?? '') : $value;
             }
-            $this->db_TableList[$table]=$name_field;
+            $this->db_TableList[$lookupTable]=$name_field;
         }
         else {
-            reset($this->db_TableList[$table]);
-            $name_field = $this->db_TableList[$table];
+            reset($this->db_TableList[$lookupTable]);
+            $name_field = $this->db_TableList[$lookupTable];
         }
         return $name_field;
     }

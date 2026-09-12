@@ -3,7 +3,7 @@
 Database classes
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v3.0.2-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v8-blueviolet.svg)
 
 > The preferred PDO adapter name is `PDOLIB`. A temporary `PDO_LIB extends PDOLIB`
@@ -70,6 +70,22 @@ composer require toropyga/db
 
 Only install and enable the extensions required by the adapter you use.
 
+### Backwards-incompatible API changes
+
+The current development version tightens parameter types on several public
+methods. Passing an invalid value that previously returned `false` can now
+raise `TypeError`. The affected methods are:
+
+- `MySQL::getListFields(string $table)`
+- `MySQL::setInsert(string $table, array $values)`
+- `PDOLIB::prepare(string $sql, array $values = [...])`
+- `PDOLIB::getListFields(string $table)`
+- `Oracle::getProcedureQuery(string $package, string $procedure, ...)`
+
+Validate arguments before calling these methods and update integrations that
+relied on the old permissive behavior. This is an intentional
+backwards-incompatible API change; see [CHANGELOG.md](CHANGELOG.md).
+
 ### Support matrix
 
 The PHP column describes the declared language compatibility from `composer.json`.
@@ -95,31 +111,31 @@ Named constants are declared when the class is called, for example in a configur
 ### Configuration constants MySQL
 ```php
 const DB_MYSQL_HOST = '127.0.0.1';  // MySQL server name or address
-const DB_MYSQL_PORT;                // MySQL server port
-const DB_MYSQL_NAME;                // DB name
-const DB_MYSQL_USER;                // User name
-const DB_MYSQL_PASS;                // User password
-const DB_MYSQL_STORAGE;             // Maintain connection for entire session or connect on every SQL query
-const DB_MYSQL_USE_TRANSACTION;     // Use transaction
-const DB_MYSQL_DEBUG;               // Enable or disable debugging features
-const DB_MYSQL_ERROR_EXIT;          // Throw DatabaseException if an error occurs
-const DB_MYSQL_LOG_NAME;            // Log file name
-const DB_MYSQL_LOG_ALL;             // Log all actions (true) or only errors (false)
+const DB_MYSQL_PORT = 3306;         // MySQL server port
+const DB_MYSQL_NAME = 'database';    // DB name
+const DB_MYSQL_USER = 'user';        // User name
+const DB_MYSQL_PASS = 'password';    // User password
+const DB_MYSQL_STORAGE = true;       // Maintain connection for entire session
+const DB_MYSQL_USE_TRANSACTION = true; // Use transaction
+const DB_MYSQL_DEBUG = false;        // Enable or disable debugging features
+const DB_MYSQL_ERROR_EXIT = false;   // Throw DatabaseException if an error occurs
+const DB_MYSQL_LOG_NAME = 'db.log';  // Log file name
+const DB_MYSQL_LOG_ALL = true;       // Log all actions (true) or only errors (false)
 ```
 ### Configuration constants ORACLE
 ```php
 const DB_ORACLE_HOST = 'db.example'; // Oracle server name or address
-const DB_ORACLE_PORT;               // Oracle server port
-const DB_ORACLE_NAME;               // DB name
-const DB_ORACLE_USER;               // User name
-const DB_ORACLE_PASS;               // User password
-const DB_ORACLE_STORAGE;            // Maintain connection for entire session or connect on every SQL query
-const DB_ORACLE_CHARSET;            // Charset
-const DB_ORACLE_DEBUG;              // Enable or disable debugging features
-const DB_ORACLE_ERROR_EXIT;         // Throw DatabaseException if an error occurs
-const DB_ORACLE_LOG_NAME;           // Log file name
-const DB_ORACLE_LOG_ALL;            // Log all actions (true) or only errors (false)
-const DB_ORACLE_USE_HOST;           // The type of record used to connect to Oracle (takes a value of 0, 1 or 2), optimally 2:
+const DB_ORACLE_PORT = 1521;        // Oracle server port
+const DB_ORACLE_NAME = 'service';   // DB name
+const DB_ORACLE_USER = 'user';       // User name
+const DB_ORACLE_PASS = 'password';   // User password
+const DB_ORACLE_STORAGE = true;     // Maintain connection for entire session
+const DB_ORACLE_CHARSET = 'AL32UTF8'; // Charset
+const DB_ORACLE_DEBUG = false;      // Enable or disable debugging features
+const DB_ORACLE_ERROR_EXIT = false; // Throw DatabaseException if an error occurs
+const DB_ORACLE_LOG_NAME = 'db.log'; // Log file name
+const DB_ORACLE_LOG_ALL = true;     // Log all actions (true) or only errors (false)
+const DB_ORACLE_USE_HOST = 2;       // Connection record type:
                                     //  0 - only the DB name is used
                                     //  1 - host and DB name is used
                                     //  2 - full entry is used for connection
@@ -127,14 +143,14 @@ const DB_ORACLE_USE_HOST;           // The type of record used to connect to Ora
 ### Configuration constants PDOLIB
 ```php
 const DB_PDO_TYPE = 'mysql';        // DB type ['mysql', 'pgsql', 'oci', 'odbc']
-const DB_PDO_HOST;                  // DB server name or address
-const DB_PDO_PORT;                  // DB Server port
-const DB_PDO_NAME;                  // DB name
-const DB_PDO_USER;                  // User name
-const DB_PDO_PASS;                  // User password
-const DB_PDO_DEBUG;                 // Enable or disable debugging features
-const DB_PDO_ERROR_EXIT;            // Throw DatabaseException if an error occurs
-const DB_PDO_ORACLE_CONNECT_TYPE;   // The type of record used to connect to Oracle (takes a value of 0, 1 or 2), optimally 2:
+const DB_PDO_HOST = '127.0.0.1';    // DB server name or address
+const DB_PDO_PORT = 3306;           // DB server port
+const DB_PDO_NAME = 'database';     // DB name
+const DB_PDO_USER = 'user';          // User name
+const DB_PDO_PASS = 'password';      // User password
+const DB_PDO_DEBUG = false;          // Enable or disable debugging features
+const DB_PDO_ERROR_EXIT = false;     // Throw DatabaseException if an error occurs
+const DB_PDO_ORACLE_CONNECT_TYPE = 2; // Oracle connection record type:
                                     //  0 - only the DB name is used
                                     //  1 - host and DB name is used
                                     //  2 - full entry is used for connection

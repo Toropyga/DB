@@ -2,8 +2,8 @@
 /**
  * DB.
  * @author Yuri Frantsevich
- * @version 2.1.0
- * @copyright 2025
+ * @version 3.0.2
+ * @copyright 2005-2026
  */
 
 namespace Toropyga\DB;
@@ -92,7 +92,7 @@ abstract class AbstractDB implements DatabaseAdapterInterface {
 
     /**
      * Checking the output parameter
-     * @param $one - output parameter
+     * @param int|string $one - output parameter
      * @return false|int
      */
     protected function checkReturnType ($one) {
@@ -136,7 +136,7 @@ abstract class AbstractDB implements DatabaseAdapterInterface {
      * @return string
      */
     protected function sanitizeErrorMessage (string $message): string {
-        $message = preg_replace('/(?:Could not (?:query|prepare):|QUERY:|SQL\s*=).*/i', 'Database operation failed.', $message);
+        $message = preg_replace('/(?:Could not (?:query|prepare):|QUERY:|SQL\s*=).*?(?=\s+ERROR:|$)/is', 'Database operation failed.', $message);
         return trim((string) $message);
     }
 

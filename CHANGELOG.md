@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [3.1.1] - 2026-09-12
+
+### Documentation
+
+- Updated the English and Russian README files to document all four adapters.
+- Added PostgreSQL constructor, metadata, and SQL builder examples.
+- Documented the `ext-pdo_pgsql` and `ext-pdo_sqlite` requirements.
+
 ## [3.1.0] - 2026-09-12
 
 ### Added
@@ -87,7 +95,8 @@ All notable changes to this project are documented here.
 - `PDO_LIB` remains available as a temporary compatibility wrapper.
 - Minimum supported PHP version is 8.1.
 
-[Unreleased]: https://github.com/Toropyga/DB/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/Toropyga/DB/compare/v3.1.1...HEAD
+[3.1.1]: https://github.com/Toropyga/DB/releases/tag/v3.1.1
 [3.1.0]: https://github.com/Toropyga/DB/releases/tag/v3.1.0
 [3.0.2]: https://github.com/Toropyga/DB/releases/tag/v3.0.2
 [3.0.1]: https://github.com/Toropyga/DB/releases/tag/v3.0.1

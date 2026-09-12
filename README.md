@@ -3,7 +3,7 @@
 Database classes
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v3.1.1-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v8-blueviolet.svg)
 
 > The preferred PDO adapter name is `PDOLIB`. A temporary `PDO_LIB extends PDOLIB`
@@ -30,7 +30,7 @@ Database classes
 
 ## General description
 
-The library includes 3 main classes:
+The library includes 4 main adapters:
 
 1. MySQL - class for working with MySQL database.
 2. PostgreSQL - class for working with PostgreSQL database through `ext-pgsql`.
@@ -69,6 +69,8 @@ composer require toropyga/db
 - `ext-mysqli` for `MySQL`.
 - `ext-pgsql` for `PostgreSQL`.
 - `ext-oci8` for `Oracle` and PDO Oracle connections.
+- `ext-pdo_pgsql` for PostgreSQL connections through `PDOLIB`.
+- `ext-pdo_sqlite` for SQLite connections through `PDOLIB`.
 - `ext-json` when array values are encoded for SQL parameters.
 
 Only install and enable the extensions required by the adapter you use.
@@ -203,6 +205,16 @@ or
 $MYSQL = new Toropyga\DB\MySQL($HOST, $PORT, $NAME, $USER, $PASS);
 
 /**
+ * PostgreSQL constructor.
+ * @param string $HOST - host
+ * @param int|string $PORT - port
+ * @param string $NAME - database name
+ * @param string $USER - user name
+ * @param string $PASS - password
+ */
+$POSTGRESQL = new Toropyga\DB\PostgreSQL($HOST, $PORT, $NAME, $USER, $PASS);
+
+/**
  * DBOracle constructor.
  * @param string $HOST - host
  * @param string $NAME - DB name
@@ -235,6 +247,7 @@ $PDO = new Toropyga\DB\PDOLIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $orac
 ### Getting a list of tables
 ```php
 $tables1 = $MYSQL->getTableList();
+$tablesPostgreSQL = $POSTGRESQL->getTableList();
 $tables2 = $ORACLE->getTableList();
 $tables3 = $PDO->getTableList();
 ```
@@ -246,6 +259,10 @@ $index = array('field_where1'=>'value_where1', 'field_where2'=>'value_where2');
 $sql_insert1 = $MYSQL->getInsertSQL('table_name', $array);
 $sql_update1 = $MYSQL->getUpdateSQL('table_name', $array, $index);
 $sql_delete1 = $MYSQL->getDeleteSQL('table_name', $index);
+
+$sql_insertPostgreSQL = $POSTGRESQL->getInsertSQL('table_name', $array);
+$sql_updatePostgreSQL = $POSTGRESQL->getUpdateSQL('table_name', $array, $index);
+$sql_deletePostgreSQL = $POSTGRESQL->getDeleteSQL('table_name', $index);
 
 $sql_insert2 = $ORACLE->getInsertSQL('table_name', $array);
 $sql_update2 = $ORACLE->getUpdateSQL('table_name', $array, $index);

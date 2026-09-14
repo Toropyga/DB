@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [3.2.3] - 2026-09-14
+
+### Documentation
+
+- Finalized the 3.2.3 release documentation and synchronized the version badges.
+- Kept the English and Russian README files aligned with the current API,
+  support matrix, and release notes.
+- Clarified the stable-release wording for the stricter parameter validation
+  notes.
+
 ## [3.2.2] - 2026-09-14
 
 ### Documentation
@@ -155,6 +165,7 @@ All notable changes to this project are documented here.
 - `PDO_LIB` remains available as a temporary compatibility wrapper.
 - Minimum supported PHP version is 8.1.
 
+[3.2.3]: https://github.com/Toropyga/DB/releases/tag/v3.2.3
 [3.2.0]: https://github.com/Toropyga/DB/releases/tag/v3.2.0
 [3.2.2]: https://github.com/Toropyga/DB/releases/tag/v3.2.2
 [3.2.1]: https://github.com/Toropyga/DB/releases/tag/v3.2.1

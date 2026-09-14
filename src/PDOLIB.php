@@ -896,11 +896,6 @@ class PDOLIB extends AbstractDB {
     }
     
     /**
-     * Escape string
-     * @param string $string
-     * @return string
-     */
-    /**
      * Escape a value for safe embedding in an SQL string and return it
      * already wrapped in quotes (a ready-to-use SQL literal), e.g. "'O''Brien'".
      *
@@ -912,10 +907,13 @@ class PDOLIB extends AbstractDB {
      * parameters are the actual injection defence, this is a best-effort fallback
      * for callers who only want the literal SQL text.
      *
-     * @param string $string
+     * @param string|int|float|bool $string
      * @return string Quoted SQL literal
      */
     private function escapeString ($string) {
+        if (is_bool($string)) return $string;
+        elseif (is_int($string)) return $string;
+        elseif (is_float($string)) return $string;
         switch ($this->db_type) {
             case 'odbc':
             case 'oci':

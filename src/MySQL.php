@@ -849,6 +849,9 @@ class MySQL extends AbstractDB {
      * @return string
      */
     private function escapeString ($string) {
+        if (is_bool($string)) return $string;
+        elseif (is_int($string)) return $string;
+        elseif (is_float($string)) return $string;
         return $this->db_connect->real_escape_string($string);
     }
 }

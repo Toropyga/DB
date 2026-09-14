@@ -3,7 +3,7 @@
 Классы для работы с базами данных
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.2.2-blue.svg)
+![Version](https://img.shields.io/badge/version-v3.2.3-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v8.1+-blueviolet.svg)
 
 > Предпочтительное имя PDO-адаптера — `PDOLIB`. Для перехода с v2.x временно
@@ -87,9 +87,9 @@ composer require toropyga/db
 
 ### Несовместимые изменения API
 
-В текущей версии разработки для нескольких публичных методов усилена
-типизация параметров. Передача некорректного значения, которая раньше могла
-вернуть `false`, теперь может привести к `TypeError`. Изменения затрагивают:
+В этой версии для нескольких публичных методов усилена типизация
+параметров. Передача некорректного значения, которая раньше могла вернуть
+`false`, теперь может привести к `TypeError`. Изменения затрагивают:
 
 - `MySQL::getListFields(string $table)`
 - `MySQL::setInsert(string $table, array $values)`
@@ -292,9 +292,9 @@ PDO-типы: `pdo_mysql`, `pdo_pgsql`, `pdo_oci`, `pdo_odbc`, `pdo_sqlite`,
 ### Получение списка таблиц
 ```php
 $tables1 = $MYSQL->getTableList();
-$tablesPostgreSQL = $POSTGRESQL->getTableList();
-$tables2 = $ORACLE->getTableList();
-$tables3 = $PDO->getTableList();
+$tables2 = $POSTGRESQL->getTableList();
+$tables3 = $ORACLE->getTableList();
+$tables4 = $PDO->getTableList();
 ```
 ---
 ### Формирование запроса INSERT, DELETE и UPDATE из массивов
@@ -305,23 +305,24 @@ $sql_insert1 = $MYSQL->getInsertSQL('table_name', $array);
 $sql_update1 = $MYSQL->getUpdateSQL('table_name', $array, $index);
 $sql_delete1 = $MYSQL->getDeleteSQL('table_name', $index);
 
-$sql_insertPostgreSQL = $POSTGRESQL->getInsertSQL('table_name', $array);
-$sql_updatePostgreSQL = $POSTGRESQL->getUpdateSQL('table_name', $array, $index);
-$sql_deletePostgreSQL = $POSTGRESQL->getDeleteSQL('table_name', $index);
+$sql_insert2 = $POSTGRESQL->getInsertSQL('table_name', $array);
+$sql_update2 = $POSTGRESQL->getUpdateSQL('table_name', $array, $index);
+$sql_delete2 = $POSTGRESQL->getDeleteSQL('table_name', $index);
 
-$sql_insert2 = $ORACLE->getInsertSQL('table_name', $array);
-$sql_update2 = $ORACLE->getUpdateSQL('table_name', $array, $index);
-$sql_delete2 = $ORACLE->getDeleteSQL('table_name', $index);
+$sql_insert3 = $ORACLE->getInsertSQL('table_name', $array);
+$sql_update3 = $ORACLE->getUpdateSQL('table_name', $array, $index);
+$sql_delete3 = $ORACLE->getDeleteSQL('table_name', $index);
 
-$sql_insert3 = $PDO->getInsertSQL('table_name', $array);
-$sql_update3 = $PDO->getUpdateSQL('table_name', $array, $index);
-$sql_delete3 = $PDO->getDeleteSQL('table_name', $index);
+$sql_insert4 = $PDO->getInsertSQL('table_name', $array);
+$sql_update4 = $PDO->getUpdateSQL('table_name', $array, $index);
+$sql_delete4 = $PDO->getDeleteSQL('table_name', $index);
 ```
 ### Отправка запроса
 ```php
 $result1 = $MYSQL->getResults($sql, $one);
-$result2 = $ORACLE->getResults($sql, $one);
-$result3 = $PDO->getResults($sql, $one);
+$result2 = $POSTGRESQL->getResults($sql, $one);
+$result3 = $ORACLE->getResults($sql, $one);
+$result4 = $PDO->getResults($sql, $one);
 ```
 
 Для параметризованных SELECT-запросов используйте `getQuery()`, а не

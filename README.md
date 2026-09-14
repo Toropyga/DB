@@ -3,7 +3,7 @@
 A lightweight PHP 8.1+ library that provides a unified interface for working with MySQL, PostgreSQL, Oracle, and PDO-supported databases. It includes prepared statements, SQL query helpers, metadata access, configurable error handling, logging, and backward compatibility with the legacy PDO_LIB adapter name.
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.2.2-blue.svg)
+![Version](https://img.shields.io/badge/version-v3.2.3-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v8.1+-blueviolet.svg)
 
 > The preferred PDO adapter name is `PDOLIB`. A temporary `PDO_LIB extends PDOLIB`
@@ -84,9 +84,9 @@ Only install and enable the extensions required by the adapter you use.
 
 ### Backwards-incompatible API changes
 
-The current development version tightens parameter types on several public
-methods. Passing an invalid value that previously returned `false` can now
-raise `TypeError`. The affected methods are:
+This release tightens parameter types on several public methods. Passing an
+invalid value that previously returned `false` can now raise `TypeError`. The
+affected methods are:
 
 - `MySQL::getListFields(string $table)`
 - `MySQL::setInsert(string $table, array $values)`
@@ -314,8 +314,9 @@ $sql_delete4 = $PDO->getDeleteSQL('table_name', $index);
 ### Sending a request
 ```php
 $result1 = $MYSQL->getResults($sql, $one);
-$result2 = $ORACLE->getResults($sql, $one);
-$result3 = $PDO->getResults($sql, $one);
+$result2 = $POSTGRESQL->getResults($sql, $one);
+$result3 = $ORACLE->getResults($sql, $one);
+$result4 = $PDO->getResults($sql, $one);
 ```
 
 For parameterized SELECT queries, use `getQuery()` instead of concatenating

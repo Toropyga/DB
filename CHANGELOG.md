@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [3.2.2] - 2026-09-14
+
+### Documentation
+
+- Synchronized the English and Russian README files with the current API.
+- Documented the `DBAPI` factory and facade, including connection examples.
+- Updated the supported PDO driver list, requirements, and support matrix for
+  `sqlsrv`, `dblib`, and `firebird`.
+- Updated version badges and PHP compatibility information to PHP 8.1+.
+
 ## [3.2.1] - 2026-09-14
 
 ### Fixed
@@ -146,6 +156,7 @@ All notable changes to this project are documented here.
 - Minimum supported PHP version is 8.1.
 
 [3.2.0]: https://github.com/Toropyga/DB/releases/tag/v3.2.0
+[3.2.2]: https://github.com/Toropyga/DB/releases/tag/v3.2.2
 [3.2.1]: https://github.com/Toropyga/DB/releases/tag/v3.2.1
 [3.1.1]: https://github.com/Toropyga/DB/releases/tag/v3.1.1
 [3.1.0]: https://github.com/Toropyga/DB/releases/tag/v3.1.0

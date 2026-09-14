@@ -3,7 +3,7 @@
 A lightweight PHP 8.1+ library that provides a unified interface for working with MySQL, PostgreSQL, Oracle, and PDO-supported databases. It includes prepared statements, SQL query helpers, metadata access, configurable error handling, logging, and backward compatibility with the legacy PDO_LIB adapter name.
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v3.2.2-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v8.1+-blueviolet.svg)
 
 > The preferred PDO adapter name is `PDOLIB`. A temporary `PDO_LIB extends PDOLIB`
@@ -281,6 +281,7 @@ $tables = $api->getTableList();
 Supported native types include `mysql`, `postgresql`, and `oracle`.
 Supported PDO types include `pdo_mysql`, `pdo_pgsql`, `pdo_oci`, `pdo_odbc`,
 `pdo_sqlite`, `pdo_sqlsrv`, `pdo_dblib`, and `pdo_firebird`.
+
 ---
 ### Getting a list of tables
 ```php

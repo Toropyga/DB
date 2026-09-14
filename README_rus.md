@@ -3,8 +3,8 @@
 Классы для работы с базами данных
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.2.0-blue.svg)
-![PHP](https://img.shields.io/badge/php-v8-blueviolet.svg)
+![Version](https://img.shields.io/badge/version-v3.2.2-blue.svg)
+![PHP](https://img.shields.io/badge/php-v8.1+-blueviolet.svg)
 
 > Предпочтительное имя PDO-адаптера — `PDOLIB`. Для перехода с v2.x временно
 > доступен совместимый класс-обертка `PDO_LIB extends PDOLIB`; в новом коде
@@ -24,18 +24,22 @@
 - [Описание работы](#описание-работы)
     - [Подключение файла класса](#Подключение-файла-класса)
     - [Инициализация классов](#Инициализация-классов)
+    - [Единая точка входа DBAPI](#Единая-точка-входа-DBAPI)
     - [Получение списка таблиц](#Получение-списка-таблиц)
     - [Формирование запроса INSERT, DELETE и UPDATE из массивов](#Формирование-запроса-INSERT-DELETE-и-UPDATE-из-массивов)
     - [Отправка запроса](#Отправка-запроса)
 
 ## Общее описание
 
-В библиотеку входит 4 основных адаптера:
+В библиотеку входят 4 основных адаптера и фабрика `DBAPI`:
 
 1. MySQL - класс для работы с БД MySQL.
 2. PostgreSQL - класс для работы с PostgreSQL через `ext-pgsql`.
 3. Oracle - класс для работы с БД Oracle.
 4. PDOLIB - универсальный класс на основе PDO, включая PostgreSQL и SQLite.
+
+`DBAPI` предоставляет единую точку входа для выбора адаптера по типу
+подключения и передачи параметров подключения в виде массива.
 
 Функции во всех библиотеках стандартизованы.
 
@@ -71,7 +75,12 @@ composer require toropyga/db
 - `ext-pgsql` для `PostgreSQL`.
 - `ext-oci8` для `Oracle` и PDO-подключений к Oracle.
 - `ext-pdo_pgsql` для PostgreSQL через `PDOLIB`.
+- `ext-pdo_oci` для Oracle через `PDOLIB`.
+- `ext-pdo_odbc` для ODBC-подключений через `PDOLIB`.
 - `ext-pdo_sqlite` для SQLite через `PDOLIB`.
+- `ext-pdo_sqlsrv` для Microsoft SQL Server через `PDOLIB`.
+- `ext-pdo_dblib` для Sybase через `PDOLIB`.
+- `ext-pdo_firebird` для Firebird через `PDOLIB`.
 - `ext-json`, если массивы передаются как значения SQL.
 
 Подключайте только расширения, необходимые используемому адаптеру.
@@ -107,6 +116,9 @@ composer require toropyga/db
 | `PDOLIB` + `oci` | Да | `ext-pdo`, `ext-pdo_oci` | Заявленная поддержка |
 | `PDOLIB` + `odbc` | Да | `ext-pdo`, `ext-pdo_odbc` | Заявленная поддержка |
 | `PDOLIB` + `sqlite` | Да | `ext-pdo`, `ext-pdo_sqlite` | Заявленная поддержка |
+| `PDOLIB` + `sqlsrv` | Да | `ext-pdo`, `ext-pdo_sqlsrv` | Заявленная поддержка |
+| `PDOLIB` + `dblib` | Да | `ext-pdo`, `ext-pdo_dblib` | Заявленная поддержка |
+| `PDOLIB` + `firebird` | Да | `ext-pdo`, `ext-pdo_firebird` | Заявленная поддержка |
 | JSON-значения массивов | Да | `ext-json` | Нужно только при кодировании массивов |
 
 Матрица описывает совместимость по конфигурации проекта, но не заменяет
@@ -164,7 +176,7 @@ const DB_ORACLE_USE_HOST = 2;       // Тип записи для подключ
 ```
 ### Настроечные константы PDOLIB
 ```php
-const DB_PDO_TYPE = 'mysql';        // Тип БД ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite']
+const DB_PDO_TYPE = 'mysql';        // Тип БД ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite', 'sqlsrv', 'dblib', 'firebird']
 const DB_PDO_HOST = '127.0.0.1';    // Имя/адрес сервера БД
 const DB_PDO_PORT = 3306;           // Порт сервера
 const DB_PDO_NAME = 'database';     // Имя базы данных
@@ -231,7 +243,7 @@ $ORACLE = new Toropyga\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $
 
 /**
  * PDOLIB constructor.
- * @param string $db_type - тип БД ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite']
+ * @param string $db_type - тип БД ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite', 'sqlsrv', 'dblib', 'firebird']
  * @param string $NAME - имя базы данных
  * @param string $USER - пользователь
  * @param string $PASS - пароль
@@ -244,6 +256,38 @@ $ORACLE = new Toropyga\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $
  */
 $PDO = new Toropyga\DB\PDOLIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $oracle_connect_type);
 ```
+
+### Единая точка входа DBAPI
+
+`DBAPI::connect()` возвращает конкретный адаптер по указанному типу
+подключения. Вариант с экземпляром `DBAPI` дополнительно передает вызовы
+методов адаптеру:
+
+```php
+$db = Toropyga\DB\DBAPI::connect('postgresql', [
+  'host' => '127.0.0.1',
+  'port' => 5432,
+  'database' => 'app',
+  'user' => 'app_user',
+  'password' => 'secret',
+]);
+
+$users = $db->getQuery('SELECT id, name FROM users', [], 'all');
+
+$api = new Toropyga\DB\DBAPI('pdo_sqlsrv', [
+  'host' => 'db.example',
+  'database' => 'app',
+  'user' => 'app_user',
+  'password' => 'secret',
+]);
+$tables = $api->getTableList();
+```
+
+Поддерживаются нативные типы `mysql`, `postgresql` и `oracle`.
+PDO-типы: `pdo_mysql`, `pdo_pgsql`, `pdo_oci`, `pdo_odbc`, `pdo_sqlite`,
+`pdo_sqlsrv`, `pdo_dblib` и `pdo_firebird`. Также поддерживаются обратные
+алиасы вида `mysql_pdo`, `pgsql_pdo` и другие варианты `*_pdo`.
+
 ---
 ### Получение списка таблиц
 ```php

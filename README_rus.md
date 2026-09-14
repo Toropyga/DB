@@ -3,7 +3,7 @@
 Классы для работы с базами данных
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.1.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v3.2.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-v8-blueviolet.svg)
 
 > Предпочтительное имя PDO-адаптера — `PDOLIB`. Для перехода с v2.x временно

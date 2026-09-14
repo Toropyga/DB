@@ -87,7 +87,7 @@ class PDOLIB extends AbstractDB {
      */
     private $pdo = null;
 
-    public function __construct($db_type = false, $NAME = false, $USER = false, $PASS = false, $HOST = false, $PORT = false, $oracle_connect_type = false) {
+    public function __construct($db_type = false, $NAME = false, $USER = false, $PASS = false, $HOST = false, $PORT = false, $oracle_connect_type = false, array $options = []) {
         if (defined('\DB_PDO_TYPE') && !$db_type && in_array(\DB_PDO_TYPE, $this->db_types)) $this->db_type = \DB_PDO_TYPE;
         elseif ($db_type && in_array($db_type, $this->db_types)) $this->db_type = $db_type;
         if (defined('\DB_PDO_HOST') && !$HOST) $this->db_host = \DB_PDO_HOST; elseif ($HOST) $this->db_host = $HOST;
@@ -99,6 +99,9 @@ class PDOLIB extends AbstractDB {
         if (defined('\DB_PDO_ERROR_EXIT')) $this->error_exit = \DB_PDO_ERROR_EXIT;
         if (defined("\DB_PDO_ORACLE_CONNECT_TYPE")) $oracle_connect_type = \DB_PDO_ORACLE_CONNECT_TYPE;
         if (isset($oracle_connect_type) && $oracle_connect_type >= 0 && $oracle_connect_type <= 2) $this->setOracleConnectType($oracle_connect_type);
+        if (array_key_exists('debug', $options)) $this->debug = (bool) $options['debug'];
+        if (array_key_exists('error_exit', $options)) $this->error_exit = (bool) $options['error_exit'];
+        if (array_key_exists('log_name', $options)) $this->log_file = (string) $options['log_name'];
         $this->getConnect();
     }
 

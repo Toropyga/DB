@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [3.2.1] - 2026-09-14
+
+### Fixed
+
+- Fixed adapter constructors rejecting the runtime options forwarded by
+  `DBAPI::connect()`. MySQL, PostgreSQL, Oracle, and PDOLIB now accept the
+  optional adapter settings without breaking existing constructor calls.
+- Fixed forwarding of `storage`, `use_transaction`, `debug`, `error_exit`,
+  `log_name`, and `log_all` settings to the adapters that support them.
+
 ## [3.2.0] - 2026-09-14
 
 ### Added
@@ -136,6 +146,7 @@ All notable changes to this project are documented here.
 - Minimum supported PHP version is 8.1.
 
 [3.2.0]: https://github.com/Toropyga/DB/releases/tag/v3.2.0
+[3.2.1]: https://github.com/Toropyga/DB/releases/tag/v3.2.1
 [3.1.1]: https://github.com/Toropyga/DB/releases/tag/v3.1.1
 [3.1.0]: https://github.com/Toropyga/DB/releases/tag/v3.1.0
 [3.0.2]: https://github.com/Toropyga/DB/releases/tag/v3.0.2

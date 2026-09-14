@@ -38,7 +38,7 @@ class PostgreSQL extends AbstractDB
      * Explicit arguments take precedence over DB_PGSQL_* constants. A
      * non-persistent connection is opened lazily on the first query.
      */
-    public function __construct($HOST = false, $PORT = false, $NAME = false, $USER = false, $PASS = false)
+    public function __construct($HOST = false, $PORT = false, $NAME = false, $USER = false, $PASS = false, array $options = [])
     {
         $this->db_host = defined('\DB_PGSQL_HOST') && !$HOST ? (string) \DB_PGSQL_HOST : (string) ($HOST ?: $this->db_host);
         $this->db_port = defined('\DB_PGSQL_PORT') && !$PORT ? \DB_PGSQL_PORT : ($PORT ?: $this->db_port);
@@ -51,6 +51,11 @@ class PostgreSQL extends AbstractDB
         if (defined('\DB_PGSQL_LOG_NAME')) $this->log_file = (string) \DB_PGSQL_LOG_NAME;
         if (defined('\DB_PGSQL_LOG_ALL')) $this->log_all = (bool) \DB_PGSQL_LOG_ALL;
 
+        if (array_key_exists('storage', $options)) $this->db_storage = (bool) $options['storage'];
+        if (array_key_exists('debug', $options)) $this->debug = (bool) $options['debug'];
+        if (array_key_exists('error_exit', $options)) $this->error_exit = (bool) $options['error_exit'];
+        if (array_key_exists('log_name', $options)) $this->log_file = (string) $options['log_name'];
+        if (array_key_exists('log_all', $options)) $this->log_all = (bool) $options['log_all'];
         if (!function_exists('pg_connect')) {
             return $this->dbError('PHP PostgreSQL extension is not installed.', '__construct');
         }

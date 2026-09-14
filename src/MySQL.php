@@ -84,7 +84,7 @@ class MySQL extends AbstractDB {
      * @param mixed $USER - user name
      * @param mixed $PASS - user password
      */
-    public function __construct ($HOST = false, $PORT = false, $NAME = false, $USER = false, $PASS = false) {
+    public function __construct ($HOST = false, $PORT = false, $NAME = false, $USER = false, $PASS = false, array $options = []) {
         if (defined('\DB_MYSQL_HOST') && !$HOST) $this->db_host = \DB_MYSQL_HOST; elseif ($HOST) $this->db_host = $HOST;
         if (defined('\DB_MYSQL_PORT') && !$PORT) $this->db_port = \DB_MYSQL_PORT; elseif ($PORT) $this->db_port = $PORT;
         if (defined('\DB_MYSQL_NAME') && !$NAME) $this->db_name = \DB_MYSQL_NAME; elseif ($NAME) $this->db_name = $NAME;
@@ -96,6 +96,12 @@ class MySQL extends AbstractDB {
         if (defined('\DB_MYSQL_ERROR_EXIT')) $this->error_exit = \DB_MYSQL_ERROR_EXIT;
         if (defined('\DB_MYSQL_LOG_NAME')) $this->log_file = \DB_MYSQL_LOG_NAME;
         if (defined('\DB_MYSQL_LOG_ALL')) $this->log_all = \DB_MYSQL_LOG_ALL;
+        if (array_key_exists('storage', $options)) $this->db_storage = (bool) $options['storage'];
+        if (array_key_exists('use_transaction', $options)) $this->use_transaction = (bool) $options['use_transaction'];
+        if (array_key_exists('debug', $options)) $this->debug = (bool) $options['debug'];
+        if (array_key_exists('error_exit', $options)) $this->error_exit = (bool) $options['error_exit'];
+        if (array_key_exists('log_name', $options)) $this->log_file = (string) $options['log_name'];
+        if (array_key_exists('log_all', $options)) $this->log_all = (bool) $options['log_all'];
         if (!function_exists('mysqli_connect')) {
             if ($this->log_all) $this->logs[] = "PHP MySQL not installed!";
             return $this->DBError("PHP MySQL not installed!", '__construct');

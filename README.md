@@ -1,10 +1,10 @@
 # DB
 
-Database classes
+A lightweight PHP 8.1+ library that provides a unified interface for working with MySQL, PostgreSQL, Oracle, and PDO-supported databases. It includes prepared statements, SQL query helpers, metadata access, configurable error handling, logging, and backward compatibility with the legacy PDO_LIB adapter name.
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
-![Version](https://img.shields.io/badge/version-v3.1.1-blue.svg)
-![PHP](https://img.shields.io/badge/php-v8-blueviolet.svg)
+![Version](https://img.shields.io/badge/version-v3.2.0-blue.svg)
+![PHP](https://img.shields.io/badge/php-v8.1+-blueviolet.svg)
 
 > The preferred PDO adapter name is `PDOLIB`. A temporary `PDO_LIB extends PDOLIB`
 > compatibility wrapper is still available for applications migrating from v2.x;
@@ -27,15 +27,19 @@ Database classes
     - [Getting a list of tables](#Getting-a-list-of-tables)
     - [Creating INSERT, DELETE and UPDATE queries from arrays](#Creating-INSERT-DELETE-and-UPDATE-queries-from-arrays)
     - [Sending a request](#Sending-a-request)
+    - [Unified DBAPI entry point](#Unified-DBAPI-entry-point)
 
 ## General description
 
-The library includes 4 main adapters:
+The library includes 4 main adapters and the `DBAPI` factory:
 
 1. MySQL - class for working with MySQL database.
-2. PostgreSQL - class for working with PostgreSQL database through `ext-pgsql`.
+2. PostgreSQL - class for working with PostgreSQL database.
 3. Oracle - class for working with Oracle database.
 4. PDOLIB - a generic class that uses the PDO library, including PostgreSQL and SQLite.
+
+`DBAPI` provides a single entry point for selecting an adapter by connection
+type and passing connection parameters as an array.
 
 Functions are standardized in all libraries.
 
@@ -71,6 +75,9 @@ composer require toropyga/db
 - `ext-oci8` for `Oracle` and PDO Oracle connections.
 - `ext-pdo_pgsql` for PostgreSQL connections through `PDOLIB`.
 - `ext-pdo_sqlite` for SQLite connections through `PDOLIB`.
+- `ext-pdo_sqlsrv` for Microsoft SQL Server connections through `PDOLIB`.
+- `ext-pdo_dblib` for Sybase connections through `PDOLIB`.
+- `ext-pdo_firebird` for Firebird connections through `PDOLIB`.
 - `ext-json` when array values are encoded for SQL parameters.
 
 Only install and enable the extensions required by the adapter you use.
@@ -106,6 +113,9 @@ Database-driver combinations require both `ext-pdo` and the matching PDO driver.
 | `PDOLIB` + `oci` | Yes | `ext-pdo`, `ext-pdo_oci` | Declared support |
 | `PDOLIB` + `odbc` | Yes | `ext-pdo`, `ext-pdo_odbc` | Declared support |
 | `PDOLIB` + `sqlite` | Yes | `ext-pdo`, `ext-pdo_sqlite` | Declared support |
+| `PDOLIB` + `sqlsrv` | Yes | `ext-pdo`, `ext-pdo_sqlsrv` | Declared support |
+| `PDOLIB` + `dblib` | Yes | `ext-pdo`, `ext-pdo_dblib` | Declared support |
+| `PDOLIB` + `firebird` | Yes | `ext-pdo`, `ext-pdo_firebird` | Declared support |
 | JSON array values | Yes | `ext-json` | Required only when arrays are encoded |
 
 The matrix is a compatibility declaration, not a replacement for integration
@@ -117,64 +127,64 @@ Named constants are declared when the class is called, for example in a configur
 
 ### Configuration constants PostgreSQL
 ```php
-const DB_PGSQL_HOST = '127.0.0.1';  // PostgreSQL server name or address
-const DB_PGSQL_PORT = 5432;         // PostgreSQL server port
-const DB_PGSQL_NAME = 'database';    // Database name
-const DB_PGSQL_USER = 'user';        // User name
-const DB_PGSQL_PASS = 'password';    // User password
-const DB_PGSQL_STORAGE = true;       // Keep connection for the session
-const DB_PGSQL_DEBUG = false;        // Enable or disable debugging
-const DB_PGSQL_ERROR_EXIT = false;   // Throw DatabaseException on errors
-const DB_PGSQL_LOG_NAME = 'db.log';  // Log file name
-const DB_PGSQL_LOG_ALL = true;       // Log all actions or only errors
+const DB_PGSQL_HOST = '127.0.0.1';     // PostgreSQL server name or address
+const DB_PGSQL_PORT = 5432;            // PostgreSQL server port
+const DB_PGSQL_NAME = 'database';      // Database name
+const DB_PGSQL_USER = 'user';          // User name
+const DB_PGSQL_PASS = 'password';      // User password
+const DB_PGSQL_STORAGE = true;         // Keep connection for the session
+const DB_PGSQL_DEBUG = false;          // Enable or disable debugging
+const DB_PGSQL_ERROR_EXIT = false;     // Throw DatabaseException on errors
+const DB_PGSQL_LOG_NAME = 'db.log';    // Log file name
+const DB_PGSQL_LOG_ALL = true;         // Log all actions or only errors
 ```
 
 ### Configuration constants MySQL
 ```php
-const DB_MYSQL_HOST = '127.0.0.1';  // MySQL server name or address
-const DB_MYSQL_PORT = 3306;         // MySQL server port
-const DB_MYSQL_NAME = 'database';    // DB name
-const DB_MYSQL_USER = 'user';        // User name
-const DB_MYSQL_PASS = 'password';    // User password
-const DB_MYSQL_STORAGE = true;       // Maintain connection for entire session
+const DB_MYSQL_HOST = '127.0.0.1';     // MySQL server name or address
+const DB_MYSQL_PORT = 3306;            // MySQL server port
+const DB_MYSQL_NAME = 'database';      // DB name
+const DB_MYSQL_USER = 'user';          // User name
+const DB_MYSQL_PASS = 'password';      // User password
+const DB_MYSQL_STORAGE = true;         // Maintain connection for entire session
 const DB_MYSQL_USE_TRANSACTION = true; // Use transaction
-const DB_MYSQL_DEBUG = false;        // Enable or disable debugging features
-const DB_MYSQL_ERROR_EXIT = false;   // Throw DatabaseException if an error occurs
-const DB_MYSQL_LOG_NAME = 'db.log';  // Log file name
-const DB_MYSQL_LOG_ALL = true;       // Log all actions (true) or only errors (false)
+const DB_MYSQL_DEBUG = false;          // Enable or disable debugging features
+const DB_MYSQL_ERROR_EXIT = false;     // Throw DatabaseException if an error occurs
+const DB_MYSQL_LOG_NAME = 'db.log';    // Log file name
+const DB_MYSQL_LOG_ALL = true;         // Log all actions (true) or only errors (false)
 ```
 ### Configuration constants ORACLE
 ```php
-const DB_ORACLE_HOST = 'db.example'; // Oracle server name or address
-const DB_ORACLE_PORT = 1521;        // Oracle server port
-const DB_ORACLE_NAME = 'service';   // DB name
-const DB_ORACLE_USER = 'user';       // User name
-const DB_ORACLE_PASS = 'password';   // User password
-const DB_ORACLE_STORAGE = true;     // Maintain connection for entire session
-const DB_ORACLE_CHARSET = 'AL32UTF8'; // Charset
-const DB_ORACLE_DEBUG = false;      // Enable or disable debugging features
-const DB_ORACLE_ERROR_EXIT = false; // Throw DatabaseException if an error occurs
-const DB_ORACLE_LOG_NAME = 'db.log'; // Log file name
-const DB_ORACLE_LOG_ALL = true;     // Log all actions (true) or only errors (false)
-const DB_ORACLE_USE_HOST = 2;       // Connection record type:
-                                    //  0 - only the DB name is used
-                                    //  1 - host and DB name is used
-                                    //  2 - full entry is used for connection
+const DB_ORACLE_HOST = 'db.example';   // Oracle server name or address
+const DB_ORACLE_PORT = 1521;           // Oracle server port
+const DB_ORACLE_NAME = 'service';      // DB name
+const DB_ORACLE_USER = 'user';         // User name
+const DB_ORACLE_PASS = 'password';     // User password
+const DB_ORACLE_STORAGE = true;        // Maintain connection for entire session
+const DB_ORACLE_CHARSET = 'AL32UTF8';  // Charset
+const DB_ORACLE_DEBUG = false;         // Enable or disable debugging features
+const DB_ORACLE_ERROR_EXIT = false;    // Throw DatabaseException if an error occurs
+const DB_ORACLE_LOG_NAME = 'db.log';   // Log file name
+const DB_ORACLE_LOG_ALL = true;        // Log all actions (true) or only errors (false)
+const DB_ORACLE_USE_HOST = 2;          // Connection record type:
+                                       //    0 - only the DB name is used
+                                       //    1 - host and DB name is used
+                                       //    2 - full entry is used for connection
 ```
 ### Configuration constants PDOLIB
 ```php
-const DB_PDO_TYPE = 'mysql';        // DB type ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite']
-const DB_PDO_HOST = '127.0.0.1';    // DB server name or address
-const DB_PDO_PORT = 3306;           // DB server port
-const DB_PDO_NAME = 'database';     // DB name
-const DB_PDO_USER = 'user';          // User name
-const DB_PDO_PASS = 'password';      // User password
-const DB_PDO_DEBUG = false;          // Enable or disable debugging features
-const DB_PDO_ERROR_EXIT = false;     // Throw DatabaseException if an error occurs
-const DB_PDO_ORACLE_CONNECT_TYPE = 2; // Oracle connection record type:
-                                    //  0 - only the DB name is used
-                                    //  1 - host and DB name is used
-                                    //  2 - full entry is used for connection
+const DB_PDO_TYPE = 'mysql';           // DB type ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite', 'sqlsrv', 'dblib', 'firebird']
+const DB_PDO_HOST = '127.0.0.1';       // DB server name or address
+const DB_PDO_PORT = 3306;              // DB server port
+const DB_PDO_NAME = 'database';        // DB name
+const DB_PDO_USER = 'user';            // User name
+const DB_PDO_PASS = 'password';        // User password
+const DB_PDO_DEBUG = false;            // Enable or disable debugging features
+const DB_PDO_ERROR_EXIT = false;       // Throw DatabaseException if an error occurs
+const DB_PDO_ORACLE_CONNECT_TYPE = 2;  // Oracle connection record type:
+                                       //    0 - only the DB name is used
+                                       //    1 - host and DB name is used
+                                       //    2 - full entry is used for connection
 ```
 
 ## Work description
@@ -191,7 +201,9 @@ $POSTGRESQL = new Toropyga\DB\PostgreSQL();
 $ORACLE = new Toropyga\DB\Oracle();
 $PDO = new Toropyga\DB\PDOLIB();
 ```
-or
+
+The adapters can also be initialized with explicit constructor parameters:
+
 ```php
 /**
  * DBMySQL constructor.
@@ -220,36 +232,62 @@ $POSTGRESQL = new Toropyga\DB\PostgreSQL($HOST, $PORT, $NAME, $USER, $PASS);
  * @param string $NAME - DB name
  * @param string $USER - user name
  * @param string $PASS - user password
- * @param int $USE_HOST - the type of record used to connect to Oracle (takes a value of 0, 1 or 2), optimally 2
+ * @param int $USE_HOST - Oracle connection record type
  * @param string $PORT - port
- * @param bool $P_CONNECT - maintain connection for entire session or connect on every SQL query
- * @param string $CHARSET - charset (default not set)
- * @param bool $no_connect - don't connect to DB when class is initiated (default - false, connects)
+ * @param bool $P_CONNECT - keep connection for the session
+ * @param string $CHARSET - charset
+ * @param bool $no_connect - do not connect during initialization
  */
 $ORACLE = new Toropyga\DB\Oracle($HOST, $NAME, $USER, $PASS, $USE_HOST, $PORT, $P_CONNECT, $CHARSET, $no_connect);
 
 /**
  * PDOLIB constructor.
- * @param string $db_type - DB type ['mysql', 'pgsql', 'oci', 'odbc', 'sqlite']
+ * @param string $db_type - DB type
  * @param string $NAME - DB name
  * @param string $USER - user name
  * @param string $PASS - user password
  * @param string $HOST - host
  * @param string $PORT - port
- * @param string $oracle_connect_type - the type of record used to connect to Oracle:
- *      0 - only the DB name is used
- *      1 - host and DB name is used
- *      2 - full entry is used for connection
+ * @param int $oracle_connect_type - Oracle connection record type
  */
 $PDO = new Toropyga\DB\PDOLIB($db_type, $NAME, $USER, $PASS, $HOST, $PORT, $oracle_connect_type);
 ```
+
+### Unified DBAPI entry point
+
+`DBAPI::connect()` returns the concrete adapter selected by the connection
+type. The instance form also proxies adapter methods:
+
+```php
+$db = Toropyga\DB\DBAPI::connect('postgresql', [
+  'host' => '127.0.0.1',
+  'port' => 5432,
+  'database' => 'app',
+  'user' => 'app_user',
+  'password' => 'secret',
+]);
+
+$users = $db->getQuery('SELECT id, name FROM users', [], 'all');
+
+$api = new Toropyga\DB\DBAPI('pdo_sqlsrv', [
+  'host' => 'db.example',
+  'database' => 'app',
+  'user' => 'app_user',
+  'password' => 'secret',
+]);
+$tables = $api->getTableList();
+```
+
+Supported native types include `mysql`, `postgresql`, and `oracle`.
+Supported PDO types include `pdo_mysql`, `pdo_pgsql`, `pdo_oci`, `pdo_odbc`,
+`pdo_sqlite`, `pdo_sqlsrv`, `pdo_dblib`, and `pdo_firebird`.
 ---
 ### Getting a list of tables
 ```php
 $tables1 = $MYSQL->getTableList();
-$tablesPostgreSQL = $POSTGRESQL->getTableList();
-$tables2 = $ORACLE->getTableList();
-$tables3 = $PDO->getTableList();
+$tables2 = $POSTGRESQL->getTableList();
+$tables3 = $ORACLE->getTableList();
+$tables4 = $PDO->getTableList();
 ```
 ---
 ### Creating INSERT, DELETE and UPDATE queries from arrays
@@ -260,17 +298,17 @@ $sql_insert1 = $MYSQL->getInsertSQL('table_name', $array);
 $sql_update1 = $MYSQL->getUpdateSQL('table_name', $array, $index);
 $sql_delete1 = $MYSQL->getDeleteSQL('table_name', $index);
 
-$sql_insertPostgreSQL = $POSTGRESQL->getInsertSQL('table_name', $array);
-$sql_updatePostgreSQL = $POSTGRESQL->getUpdateSQL('table_name', $array, $index);
-$sql_deletePostgreSQL = $POSTGRESQL->getDeleteSQL('table_name', $index);
+$sql_insert2 = $POSTGRESQL->getInsertSQL('table_name', $array);
+$sql_update2 = $POSTGRESQL->getUpdateSQL('table_name', $array, $index);
+$sql_delete2 = $POSTGRESQL->getDeleteSQL('table_name', $index);
 
-$sql_insert2 = $ORACLE->getInsertSQL('table_name', $array);
-$sql_update2 = $ORACLE->getUpdateSQL('table_name', $array, $index);
-$sql_delete2 = $ORACLE->getDeleteSQL('table_name', $index);
+$sql_insert3 = $ORACLE->getInsertSQL('table_name', $array);
+$sql_update3 = $ORACLE->getUpdateSQL('table_name', $array, $index);
+$sql_delete3 = $ORACLE->getDeleteSQL('table_name', $index);
 
-$sql_insert3 = $PDO->getInsertSQL('table_name', $array);
-$sql_update3 = $PDO->getUpdateSQL('table_name', $array, $index);
-$sql_delete3 = $PDO->getDeleteSQL('table_name', $index);
+$sql_insert4 = $PDO->getInsertSQL('table_name', $array);
+$sql_update4 = $PDO->getUpdateSQL('table_name', $array, $index);
+$sql_delete4 = $PDO->getDeleteSQL('table_name', $index);
 ```
 ### Sending a request
 ```php

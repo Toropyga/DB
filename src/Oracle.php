@@ -95,7 +95,7 @@ class Oracle extends AbstractDB {
      * @param string $CHARSET - charset
      * @param bool $no_connect - don't connect to DB when class is initiated
      */
-    public function __construct ($HOST=NULL, $NAME=NULL, $USER=NULL, $PASS=NULL, $USE_HOST=NULL, $PORT=NULL, $P_CONNECT=NULL, $CHARSET = '', $no_connect = false) {
+    public function __construct ($HOST=NULL, $NAME=NULL, $USER=NULL, $PASS=NULL, $USE_HOST=NULL, $PORT=NULL, $P_CONNECT=NULL, $CHARSET = '', $no_connect = false, array $options = []) {
         if (!extension_loaded('oci8')) {
             if ($this->log_all) $this->logs[] = "PHP OCI8 not installed!";
             $this->DBError("PHP OCI8 not installed!", '__construct');
@@ -131,6 +131,11 @@ class Oracle extends AbstractDB {
         }
         $this->client_version = oci_client_version();
 
+        if (array_key_exists('storage', $options)) $this->oracle_config['p_connect'] = (bool) $options['storage'];
+        if (array_key_exists('debug', $options)) $this->debug = (bool) $options['debug'];
+        if (array_key_exists('error_exit', $options)) $this->error_exit = (bool) $options['error_exit'];
+        if (array_key_exists('log_name', $options)) $this->log_file = (string) $options['log_name'];
+        if (array_key_exists('log_all', $options)) $this->log_all = (bool) $options['log_all'];
         if (!$no_connect) $this->getOracle();
     }
 

@@ -1,5 +1,8 @@
 .git/
 .idea/
+.vscode/
+.phpunit.cache/
 .gitignore
+.release-notes.md
 vendor/
 composer.lock

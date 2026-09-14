@@ -2,6 +2,46 @@
 
 All notable changes to this project are documented here.
 
+## [3.2.0] - 2026-09-14
+
+### Added
+
+- Added `DBAPI` as a unified factory and facade for selecting database adapters.
+- Added `sqlsrv`, `dblib`, and `firebird` PDO driver support to `PDOLIB`.
+- Added Microsoft SQL Server, Sybase, and Firebird metadata discovery.
+- Added a minimal PHPUnit test suite for the `DBAPI` factory and PDO alias resolution.
+
+### Fixed
+
+- Fixed `DBAPI` PDO alias normalization for both `pdo_*` and `*_pdo` forms, so aliases like `pdo_mysql`, `mysql_pdo`, `pdo_pgsql`, and `pgsql_pdo` resolve to the correct backend driver consistently.
+- Fixed `Oracle::getPackageQuery()` to validate package and procedure names
+  before interpolating them into PL/SQL.
+- Fixed `PDOLIB` silently falling back to MySQL for an unsupported driver name;
+  invalid driver types now raise `InvalidArgumentException`.
+- Fixed `DBAPI` dropping adapter runtime options. Connection parameters now
+  forward `storage`, `use_transaction`, `debug`, `error_exit`, `log_name`, and
+  `log_all` to the adapters that support them; `PDOLIB` also honors transient
+  connection mode and PDO logging/error settings.
+- `PostgreSQL::processResult()` no longer silently drops rows: the `1`/`'one'`
+  and `2`/`'row'` scalar/row shortcuts checked column count only, so a
+  multi-row, single-column result returned just the first row's value instead
+  of the documented array of values.
+- `PostgreSQL::quoteConnectionValue()` now escapes a literal backslash before
+  escaping a quote, matching libpq conninfo string syntax; a value containing
+  a backslash could previously break or escape its quoted section.
+- `Oracle::getProcedureQuery()` now validates `$package`/`$procedure` through
+  the shared `validateIdentifier()`, closing a PL/SQL injection gap that every
+  other schema-object-accepting method in this codebase already closes.
+- `PDOLIB::getListFields()` case-insensitive table matching (added for `oci`
+  in 3.0.2) now also covers `firebird`, which has the same upper-cased
+  unquoted-identifier convention as Oracle.
+- `PDOLIB::quoteField()` now quotes `sqlsrv` identifiers with square brackets
+  instead of double quotes, and leaves `dblib` identifiers unquoted (its
+  double-quote support depends on a server setting that isn't guaranteed on;
+  `dblib` field names are always drawn from a validated whitelist already).
+- Updated PHPUnit to a PHP 8.4 compatible version and removed the remaining
+  deprecation warning from the test run.
+
 ## [3.1.1] - 2026-09-12
 
 ### Documentation
@@ -95,7 +135,7 @@ All notable changes to this project are documented here.
 - `PDO_LIB` remains available as a temporary compatibility wrapper.
 - Minimum supported PHP version is 8.1.
 
-[Unreleased]: https://github.com/Toropyga/DB/compare/v3.1.1...HEAD
+[3.2.0]: https://github.com/Toropyga/DB/releases/tag/v3.2.0
 [3.1.1]: https://github.com/Toropyga/DB/releases/tag/v3.1.1
 [3.1.0]: https://github.com/Toropyga/DB/releases/tag/v3.1.0
 [3.0.2]: https://github.com/Toropyga/DB/releases/tag/v3.0.2
